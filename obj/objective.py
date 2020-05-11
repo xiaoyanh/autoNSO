@@ -7,6 +7,7 @@ Created on Mon Sep  2 10:18:22 2019
 """
 
 import torch
+from utils.jacobian_hessian import hessian
 
 class Objective:
     def __init__(self, obj_func, requires_grad=True, oracle_output='both'):
@@ -75,3 +76,12 @@ class Objective:
             raise Exception('Oracle set to no return gradient')
             
         return self.x.grad.data.numpy()
+
+    def oracle_hess(self):
+        if self.x is None:
+            raise Exception('Need to call the oracle first!')
+
+        if self.requires_grad == False:
+            raise Exception('Oracle set to no return gradient')
+
+        return hessian(self.fx,self.x)
