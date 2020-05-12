@@ -7,6 +7,7 @@ Created on Mon Sep  2 10:18:22 2019
 """
 
 import torch
+from IPython import embed
 from utils.jacobian_hessian import hessian
 
 class Objective:
@@ -15,10 +16,8 @@ class Objective:
         self.requires_grad      = requires_grad
         self.x     = None
         self.fx    = None
-        self.oracle_output = oracle_output
         
-        assert oracle_output in ['f','df','both']
-        
+        assert oracle_output in ['f','df','both','hess+']
         self.oracle_output = oracle_output
         
     def call_oracle(self,x):
@@ -50,6 +49,7 @@ class Objective:
             raise Exception('Objective function must outputscalar value')
         
         # Uses auto differentiation to get subgradient
+
         if self.requires_grad and (self.oracle_output != 'hess+') :
             self.fx.backward()
         

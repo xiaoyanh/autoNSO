@@ -20,5 +20,5 @@ def hessian(y, x, return_grad=True):
     if not return_grad:
         return jacobian(gradient, x)
     else:
-        return {'df' : gradient.data.numpy(),
-                'hessian'  : jacobian(gradient, x).data.numpy()}
+        return {'df'   : gradient.data.numpy(),
+                'd2f'  : jacobian(gradient, x).data.numpy()}
