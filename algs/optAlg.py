@@ -15,7 +15,8 @@ from IPython import embed
 
 class OptAlg:
     def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True):
-        
+        assert x0 is not None
+
         if type(x0) is not np.ndarray:
             x0 = np.array(x0)
         

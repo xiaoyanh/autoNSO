@@ -14,9 +14,11 @@ def jacobian(y, x, create_graph=False):
     return torch.stack(jac).reshape(y.shape + x.shape)
 
 
-def hessian(y, x):
-    return jacobian(jacobian(y, x, create_graph=True), x)
+def hessian(y, x, return_grad=True):
+    gradient = jacobian(y, x, create_graph=True)
 
-
-def f(x):
-    return x * x * torch.arange(4, dtype=torch.float)
+    if not return_grad:
+        return jacobian(gradient, x)
+    else:
+        return {'df' : gradient.data.numpy(),
+                'hessian'  : jacobian(gradient, x).data.numpy()}

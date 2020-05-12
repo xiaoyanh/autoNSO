@@ -50,7 +50,7 @@ class Objective:
             raise Exception('Objective function must outputscalar value')
         
         # Uses auto differentiation to get subgradient
-        if self.requires_grad:
+        if self.requires_grad and (self.oracle_output != 'hess+') :
             self.fx.backward()
         
         if self.oracle_output == 'f':
@@ -61,6 +61,11 @@ class Objective:
             return {'f'  : self.oracle_f(),
                     'df' : self.oracle_df(),
                     }
+        elif self.oracle_output == 'hess+':
+            hess = hessian(self.fx,self.x)
+            hess['f'] = self.oracle_f()
+
+            return hess
         
     def oracle_f(self):
         if self.x is None:
@@ -76,12 +81,3 @@ class Objective:
             raise Exception('Oracle set to no return gradient')
             
         return self.x.grad.data.numpy()
-
-    def oracle_hess(self):
-        if self.x is None:
-            raise Exception('Need to call the oracle first!')
-
-        if self.requires_grad == False:
-            raise Exception('Oracle set to no return gradient')
-
-        return hessian(self.fx,self.x)
