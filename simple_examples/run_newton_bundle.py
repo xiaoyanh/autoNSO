@@ -15,7 +15,6 @@ import torch
 from vis.visualize import OptPlot
 from obj.objective import Objective
 from algs.newton_bundle import NewtonBundle
-from algs.optAlg import ProxBundle, Subgradient, Nesterov, LBFGS
 
 def simple2D(x):
     return max(abs(x[0]),(0.5 * x[1]**2))
@@ -27,16 +26,6 @@ Simple2D = Objective(simple2D)
 optAlg0 = NewtonBundle(Simple2D, x0=[10,3], max_iter=50, k=2)
 optAlg0.optimize()
 
-# Run prox-bundle optimization algorithm
-optAlg1 = ProxBundle(Simple2D, x0=[10,3], max_iter=50)
-optAlg1.optimize()
-optAlg2 = Subgradient(Simple2D, x0=[10,3], max_iter=50)
-optAlg2.optimize()
-optAlg3 = Nesterov(Simple2D, x0=[10,3], max_iter=50)
-optAlg3.optimize()
-optAlg4 = LBFGS(Simple2D, x0=[10,3], max_iter=50)
-optAlg4.optimize()
-
-opt_plot = OptPlot(opt_algs=[optAlg0,optAlg1, optAlg2, optAlg3, optAlg4])
+opt_plot = OptPlot(opt_algs=[optAlg0])
 opt_plot.plotPath()
 opt_plot.plotValue()

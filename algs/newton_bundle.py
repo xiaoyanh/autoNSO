@@ -18,7 +18,7 @@ class NewtonBundle(OptAlg):
 
         # Add start with initial point
         self.cur_x = self.x0
-        self.cur_fx = self.criterion(self.cur_x)
+        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.float,requires_grad=False)).data.numpy()
         self.cur_lam = None
         self.delta   = float('inf')
         self.delta_thres = delta_thres
