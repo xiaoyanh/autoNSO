@@ -79,7 +79,7 @@ class NewtonBundle(OptAlg):
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
         self.cur_x = (np.linalg.pinv(A)@b)[0:self.x_dim]
-
+        embed()
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
         oracle['f']
