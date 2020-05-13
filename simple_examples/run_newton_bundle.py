@@ -22,5 +22,5 @@ def simple2D(x):
 Simple2D = Objective(simple2D)
 
 # Run prox-bundle optimization algorithm
-optAlg = NewtonBundle(Simple2D, x0=[2,3], max_iter=10, k=4)
+optAlg = NewtonBundle(Simple2D, x0=[2,3], max_iter=10, k=2)
 optAlg.optimize()

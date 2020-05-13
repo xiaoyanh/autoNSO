@@ -61,7 +61,7 @@ class OptAlg:
     
     def step(self):
         if self.verbose:
-            print('iter: ' + str(self.cur_iter))
+            print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx))
     
     def stop_cond(self):
         return False

@@ -58,7 +58,7 @@ class NewtonBundle(OptAlg):
         # Find lambda (warm start with previous iteration)
         self.lam_var.value = self.cur_lam
         prob = cp.Problem(cp.Minimize(cp.quad_form(self.p,np.eye(self.x_dim))), self.constraints+[self.lam_var @ self.dfS == self.p])
-        prob.solve(warm_start=True,verbose=True)
+        prob.solve(warm_start=True)
         self.lam_cur = self.lam_var.value
 
         # Solve optimality conditions for x
@@ -79,16 +79,18 @@ class NewtonBundle(OptAlg):
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
         self.cur_x = (np.linalg.pinv(A)@b)[0:self.x_dim]
-        embed()
+
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
-        oracle['f']
-        oracle['df']
-        oracle['d2f']
+        self.cur_fx = oracle['f']
+
+        k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
+        self.S[k_sub, :] = self.cur_x
+        self.dfS[k_sub, :] = oracle['df']
+        self.d2fS[k_sub, :, :] = oracle['d2f']
 
         # Update current iterate value and update the bundle
-        self.cur_x = ... #NEW X
-        self.cur_fx = oracle['f']
+
         self.update_params()
 
     def update_params(self):
