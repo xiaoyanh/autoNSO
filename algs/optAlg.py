@@ -19,6 +19,7 @@ class OptAlg:
 
         if type(x0) is not np.ndarray:
             x0 = np.array(x0)
+        assert len(x0.shape)==1  # x0 is a vector
         
         assert len(x0.shape) == 1 # assert initial is vector
         
@@ -93,7 +94,7 @@ class ProxBundle(OptAlg):
         super(ProxBundle,self).step()
         
         prox_objective = self.v + 0.5 * (self.mu/2.0) * cp.power(cp.norm(self.p - self.cur_x,2),2)
-        
+        self.p.value = self.cur_y # Warm-starting
         prob = cp.Problem(cp.Minimize(prox_objective),self.constraints)
         
         # Use MOSEK for accuracy
@@ -101,7 +102,7 @@ class ProxBundle(OptAlg):
 #        prob.solve(solver=cp.MOSEK,mosek_params=m_params)
         
         # If you don't have mosek just do:
-        prob.solve()
+        prob.solve(warm_start=True)
         
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value
@@ -156,7 +157,7 @@ class TorchAlg(OptAlg):
         self.p         = torch.tensor(self.x0,dtype=torch.float,requires_grad=True)
         
     def step(self):
-        
+
         super(TorchAlg,self).step()
         
         # zero the parameter gradients
