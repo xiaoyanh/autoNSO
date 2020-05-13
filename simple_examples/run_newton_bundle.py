@@ -10,17 +10,33 @@ Created on Mon Sep  2 10:18:22 2019
 
 #%%
 import sys
-sys.path.append('..')
+import torch
+
+from vis.visualize import OptPlot
 from obj.objective import Objective
 from algs.newton_bundle import NewtonBundle
+from algs.optAlg import ProxBundle, Subgradient, Nesterov, LBFGS
 
-# f(x,y) = |x| + y^2
 def simple2D(x):
-    return abs(x[0]) + x[1]**2
+    return max(abs(x[0]),(0.5 * x[1]**2))
 
 # Create the objective function
 Simple2D = Objective(simple2D)
 
 # Run prox-bundle optimization algorithm
-optAlg = NewtonBundle(Simple2D, x0=[2,3], max_iter=10, k=2)
-optAlg.optimize()
+optAlg0 = NewtonBundle(Simple2D, x0=[10,3], max_iter=50, k=2)
+optAlg0.optimize()
+
+# Run prox-bundle optimization algorithm
+optAlg1 = ProxBundle(Simple2D, x0=[10,3], max_iter=50)
+optAlg1.optimize()
+optAlg2 = Subgradient(Simple2D, x0=[10,3], max_iter=50)
+optAlg2.optimize()
+optAlg3 = Nesterov(Simple2D, x0=[10,3], max_iter=50)
+optAlg3.optimize()
+optAlg4 = LBFGS(Simple2D, x0=[10,3], max_iter=50)
+optAlg4.optimize()
+
+opt_plot = OptPlot(opt_algs=[optAlg0,optAlg1, optAlg2, optAlg3, optAlg4])
+opt_plot.plotPath()
+opt_plot.plotValue()

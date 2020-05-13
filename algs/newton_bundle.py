@@ -11,6 +11,7 @@ class NewtonBundle(OptAlg):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, max_iter=max_iter, x0=x0)
+        self.name = 'NewtonBundle (k='+str(k)+')'
 
         # Set up criterion
         self.criterion = self.objective.obj_func
@@ -86,6 +87,7 @@ class NewtonBundle(OptAlg):
 
         k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
         self.S[k_sub, :] = self.cur_x
+        self.fS[k_sub]   = self.cur_fx
         self.dfS[k_sub, :] = oracle['df']
         self.d2fS[k_sub, :, :] = oracle['d2f']
 
