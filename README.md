@@ -35,7 +35,7 @@ opt_plot.plotValue()
 Maintainer:   X.Y. Han, Cornell University ORIE\
 Contact:      xiaoyanhn@gmail.com
 
-Please cite:
+**Citation**
 
 > X.Y. Han, *autoNSO: Implementations of Common NSO Methods with Auto-differentiation*, (2019), GitHub repository, https://github.com/xiaoyanh/autoNSO
 
