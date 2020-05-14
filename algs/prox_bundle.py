@@ -1,5 +1,7 @@
 import numpy as np
 import cvxpy as cp
+
+from IPython import embed
 from algs.optAlg import OptAlg
 
 class ProxBundle(OptAlg):
@@ -35,7 +37,7 @@ class ProxBundle(OptAlg):
 
         # If you don't have mosek just do:
         prob.solve(warm_start=True)
-
+        embed()
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value
 

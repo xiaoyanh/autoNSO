@@ -21,6 +21,10 @@ x0 = np.random.randn(n)
 
 algs = []
 
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=10, null_k=0.001)
+optAlg2.optimize()
+algs += [optAlg2]
+
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=50, k=bund_sz)
 optAlg0.optimize()
 algs += [optAlg0]
@@ -29,9 +33,6 @@ algs += [optAlg0]
 # optAlg1.optimize()
 # algs += [optAlg1]
 
-# optAlg2 = ProxBundle(StronglyConvex, x0=x0, max_iter=50, mu=10, null_k=0.001)
-# optAlg2.optimize()
-# algs += [optAlg2]
 
 
 opt_plot = OptPlot(opt_algs=algs)
