@@ -14,13 +14,8 @@ import torch
 
 from vis.visualize import OptPlot
 from obj.objective import Objective
+from obj.obj_funcs import Simple2D, StronglyConvex
 from algs.newton_bundle import NewtonBundle
-
-def simple2D(x):
-    return max(abs(x[0]),(0.5 * x[1]**2))
-
-# Create the objective function
-Simple2D = Objective(simple2D)
 
 # Run prox-bundle optimization algorithm
 optAlg0 = NewtonBundle(Simple2D, x0=[10,3], max_iter=50, k=2)
