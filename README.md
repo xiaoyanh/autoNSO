@@ -53,4 +53,4 @@ Please cite:
 
 Disclaimers: 
 * Objective functions must work with *torch tensors*, not numpy arrays.
-* This code is essentially a wrapper between PyTorch, CVXPY, and Matplotlib to do benchmarking for NSO research. It is not implemented to be the fastest possible in terms of wall-clock time.
+* This code is essentially a wrapper between PyTorch, CVXPY, and Matplotlib to do benchmarking for NSO research.
