@@ -5,7 +5,7 @@ Research in non-smooth optimization often assume that one does not "see" the exp
 
 Currently, the software is capable of the following first-order and quasi-newton methods:
 
-* Prox-Bundle Method (https://link.springer.com/article/10.1007/BF01585170, Section 4)
+* Prox-Bundle Method (https://link.springer.com/article/10.1007/BF01585170)
 * Newton-Bundle Method (https://arxiv.org/abs/1907.11742)
 * Subgradient Method
 * Nesterov’s Accelerated Method
@@ -28,12 +28,12 @@ opt_plot.plotPath()
 opt_plot.plotValue()
 ```
 
-
-
 ![](./aux/plot_both.png) 
 
-_Maintainer:_   X.Y. Han, Cornell University ORIE\
-_Contact:_      xiaoyanhn@gmail.com
+**Other Features**
+
+* ``obj/obj_funcs`` contains examples of more involved
+strongly convex, non-convex, and partly smooth objective functions from Lewis-Wylie 2019 (https://arxiv.org/abs/1907.11742).
 
 **Citation**
 
@@ -52,5 +52,11 @@ _Contact:_      xiaoyanhn@gmail.com
 ```
 
 **Disclaimers**
+
 * Objective functions must work with *torch tensors*, not numpy arrays.
 * This code is essentially a wrapper between PyTorch, CVXPY, and Matplotlib to do benchmarking for NSO research.
+
+**Contact Info**
+
+_Maintainer:_   X.Y. Han, Cornell University ORIE\
+_Email:_      xiaoyanhn@gmail.com
