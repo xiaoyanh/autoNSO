@@ -32,8 +32,8 @@ opt_plot.plotValue()
 
 ![](./aux/plot_both.png) 
 
-Maintainer:   X.Y. Han, Cornell University ORIE\
-Contact:      xiaoyanhn@gmail.com
+_Maintainer:_   X.Y. Han, Cornell University ORIE\
+_Contact:_      xiaoyanhn@gmail.com
 
 **Citation**
 
@@ -51,6 +51,6 @@ Contact:      xiaoyanhn@gmail.com
 }
 ```
 
-Disclaimers: 
+**Disclaimers**
 * Objective functions must work with *torch tensors*, not numpy arrays.
 * This code is essentially a wrapper between PyTorch, CVXPY, and Matplotlib to do benchmarking for NSO research.
