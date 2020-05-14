@@ -1,6 +1,8 @@
 import torch
-from torch import abs, max, sum, norm, einsum, stack, symeig, tensor, Tensor
+from IPython import embed
 from obj.objective import Objective
+from torch import abs, max, sum, norm, einsum, stack, symeig, tensor, Tensor
+
 
 def simple2D(x):
     return max(abs(x[0]),(0.5 * x[1]**2))
@@ -61,6 +63,6 @@ def partlysmooth(n=50, m=25, seed=0, **kwargs):
         assert len(x) == n
 
         mat = A[0,:,:] + einsum('i,ijk->jk',x,A[1:,:,:])
-        return symeig(mat)
+        return symeig(mat,eigenvectors=True)[0][-1] # eigenvalues in ascending order
 
     return Objective(nc_function, **kwargs)

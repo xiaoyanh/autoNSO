@@ -4,7 +4,7 @@
 
 import numpy as np
 from vis.visualize import OptPlot
-from obj.obj_funcs import stronglyconvex, nonconvex
+from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 from algs.newton_bundle import NewtonBundle
 from algs.optAlg import LBFGS, ProxBundle
 
@@ -13,13 +13,14 @@ n = 50
 k = 10
 
 # objective = stronglyconvex(n=n,k=10,oracle_output='hess+')
-objective = nonconvex(n=n,k=10,oracle_output='hess+')
+# objective = nonconvex(n=n,k=10,oracle_output='hess+')
+objective = partlysmooth(n=50,m=25,oracle_output='hess+')
 
 x0 = np.random.randn(n)
 
 algs = []
 
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=50, k=3)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=50, k=20)
 optAlg0.optimize()
 algs += [optAlg0]
 
