@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Sep  2 10:18:22 2019
-
-@author: Xiaoyan
-"""
-
-# Uses the prox-bundle method to solve the simple objective starting at (2,3)
-
 #%%
-import sys
-import torch
 
+import numpy as np
 from vis.visualize import OptPlot
-from obj.objective import Objective
-from obj.obj_funcs import Simple2D, StronglyConvex
+from obj.obj_funcs import stronglyconvex
 from algs.newton_bundle import NewtonBundle
+from algs.optAlg import LBFGS, ProxBundle
 
-# Run prox-bundle optimization algorithm
-optAlg0 = NewtonBundle(Simple2D, x0=[10,3], max_iter=50, k=2)
+# Run newton-bundle optimization algorithm
+n = 50
+k = 10
+StronglyConvex = stronglyconvex(n=n,k=10,oracle_output='hess+')
+x0 = np.random.randn(n)
+
+algs = []
+
+optAlg0 = NewtonBundle(StronglyConvex, x0=x0, max_iter=50, k=3)
 optAlg0.optimize()
+algs += [optAlg0]
 
-opt_plot = OptPlot(opt_algs=[optAlg0])
-opt_plot.plotPath()
+optAlg1 = LBFGS(StronglyConvex, x0=x0, max_iter=50, hist=2*n, lr=0.01)
+optAlg1.optimize()
+algs += [optAlg1]
+
+# optAlg2 = ProxBundle(StronglyConvex, x0=x0, max_iter=50, mu=10, null_k=0.001)
+# optAlg2.optimize()
+# algs += [optAlg2]
+
+
+opt_plot = OptPlot(opt_algs=algs)
 opt_plot.plotValue()

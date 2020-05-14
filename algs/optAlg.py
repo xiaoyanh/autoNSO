@@ -225,8 +225,7 @@ class LBFGS(TorchAlg):
         self.name = 'LBFGS'
         self.name += (' (lr=' + str(self.lr)+',decay='+str(self.decay)
                         +',hist='+str(self.hist)+')')
-        
-        # SGD without batches and momentum reduces to subgradient descent
+
         self.optimizer = optim.LBFGS([self.p], lr=self.lr, history_size=self.hist)
         self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.decay)
         

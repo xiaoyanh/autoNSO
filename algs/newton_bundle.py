@@ -85,7 +85,9 @@ class NewtonBundle(OptAlg):
         oracle = self.objective.call_oracle(self.cur_x)
         self.cur_fx = oracle['f']
 
-        k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
+        # k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
+        k_sub = np.argmin(self.lam_cur)
+
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx
         self.dfS[k_sub, :] = oracle['df']

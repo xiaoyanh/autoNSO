@@ -147,11 +147,9 @@ class OptPlot:
         max_iters = float('-inf')
         max_f     = float('-inf')
         min_f     = float('inf')
+        min_mag   = float('inf')
         
         for alg in self.opt_algs:
-            ax.plot(np.arange(alg.total_iter),alg.path_fx,
-                    color = next(palette), marker = next(markers),
-                    alpha = .4, label = alg.name)
             
             if alg.total_iter > max_iters:
                 max_iters = alg.total_iter
@@ -160,11 +158,28 @@ class OptPlot:
                 max_f = max(alg.path_fx)
             if min(alg.path_fx) < min_f:
                 min_f = min(alg.path_fx)
-            
-                
+
+            if min(abs(alg.path_fx)) < min_mag:
+                min_mag = min(abs(alg.path_fx))
+
+        if min_f < 0:
+            max_f -= min_f
+            shift = -min_f + min_mag
+            min_f = min_mag
+            y_label = 'Shifted Objective Value (log-scale)'
+        else:
+            shift = 0
+            y_label = 'Objective Value (log-scale)'
+
+
+        for alg in self.opt_algs:
+            ax.plot(np.arange(alg.total_iter), alg.path_fx + shift,
+                    color=next(palette), marker=next(markers),
+                    alpha=.4, label=alg.name)
+
         plt.yscale('log')
         plt.xlabel('Iteration')
-        plt.ylabel('Objective Value (log-scale)')
+        plt.ylabel(y_label)
         plt.xticks(np.round(np.linspace(0,max_iters,10)))
         
         plt.ylim((min_f,max_f))
