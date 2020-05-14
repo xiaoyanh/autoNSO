@@ -23,7 +23,11 @@ x0 = np.random.randn(n)
 
 algs = []
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=2, null_k=0.001)
+# Criteria for switching to newton-bundle
+def crit(met):
+    return met.cur_iter == 25
+
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=2, null_k=0.001, switch_crit=crit)
 optAlg2.optimize()
 algs += [optAlg2]
 
@@ -36,8 +40,6 @@ algs += [optAlg0]
 # optAlg1 = LBFGS(objective, x0=x0, max_iter=50, hist=2*n, lr=0.01)
 # optAlg1.optimize()
 # algs += [optAlg1]
-
-
 
 opt_plot = OptPlot(opt_algs=algs)
 opt_plot.plotValue()

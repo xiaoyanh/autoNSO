@@ -9,8 +9,8 @@ from torch.optim.lr_scheduler import StepLR
 
 # Wrappers for pytorch algorithms
 class TorchAlg(OptAlg):
-    def __init__(self, objective, max_iter=10, x0=None):
-        super(TorchAlg, self).__init__(objective, max_iter=max_iter, x0=x0)
+    def __init__(self, objective, **kwargs):
+        super(TorchAlg, self).__init__(objective, **kwargs)
 
         # Add one bundle point to initial point
         self.cur_x = self.x0
@@ -39,6 +39,8 @@ class TorchAlg(OptAlg):
 
     def update_params(self):
 
+        super(TorchAlg,self).update_params()
+
         self.cur_fx = self.objective.call_oracle(self.cur_x)['f']
 
         if self.path_x is not None:
@@ -54,8 +56,8 @@ class TorchAlg(OptAlg):
 
 # Subgradient method
 class Subgradient(TorchAlg):
-    def __init__(self, objective, max_iter=10, x0=None, lr=1, decay=0.9):
-        super(Subgradient, self).__init__(objective, max_iter=max_iter, x0=x0)
+    def __init__(self, objective, lr=1, decay=0.9, **kwargs):
+        super(Subgradient, self).__init__(objective, **kwargs)
 
         self.lr = lr
         self.decay = decay
@@ -68,12 +70,12 @@ class Subgradient(TorchAlg):
 
 
 class Nesterov(TorchAlg):
-    def __init__(self, objective, max_iter=10, x0=None, lr=1, decay=0.9, momentum=0.9):
-        super(Nesterov, self).__init__(objective, max_iter=max_iter, x0=x0)
+    def __init__(self, objective, lr=1, decay=0.9, momentum=0.9, **kwargs):
+        super(Nesterov, self).__init__(objective, **kwargs)
 
         self.lr = lr
         self.decay = decay
-        self.momentum = 0.9
+        self.momentum = momentum
         self.name = 'Nesterov'
         self.name += (' (lr=' + str(self.lr) + ',decay=' + str(self.decay)
                       + ',mom=' + str(self.momentum) + ')')
@@ -84,8 +86,8 @@ class Nesterov(TorchAlg):
 
 
 class LBFGS(TorchAlg):
-    def __init__(self, objective, max_iter=10, x0=None, lr=1, decay=0.9, hist=100):
-        super(LBFGS, self).__init__(objective, max_iter=max_iter, x0=x0)
+    def __init__(self, objective, lr=1, decay=0.9, hist=100, **kwargs):
+        super(LBFGS, self).__init__(objective, **kwargs)
 
         self.lr = lr
         self.decay = decay
@@ -112,3 +114,12 @@ class LBFGS(TorchAlg):
         # Update current iterate value and update the bundle
         self.cur_x = self.p.data.numpy().copy()
         self.update_params()
+
+    def update_params(self):
+        super(TorchAlg, self).update_params()
+
+    def save_bundle(self):
+        assert len(self.path_y) >= 2*len(self.cur_x)
+
+        self.saved_bundle = {'bundle': self.path_x[-2*len(self.cur_x):],
+                             'iter': self.cur_iter + 1}

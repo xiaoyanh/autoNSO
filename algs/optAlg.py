@@ -5,7 +5,7 @@ import numpy as np
 from IPython import embed
 
 class OptAlg:
-    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True):
+    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None):
         assert x0 is not None
 
         if type(x0) is not np.ndarray:
@@ -33,6 +33,10 @@ class OptAlg:
         self.total_iter = None
         
         self.name = None
+
+        # function to trigger saving the checkpoint
+        self.switch_crit = switch_crit
+        self.saved_bundle = None
     
     def optimize(self):
 
@@ -58,4 +62,9 @@ class OptAlg:
         return False
     
     def update_params(self):
+        if self.switch_crit is not None and self.switch_crit(self):
+            self.save_bundle()
+        pass
+
+    def save_bundle(self):
         pass

@@ -5,8 +5,8 @@ from IPython import embed
 from algs.optAlg import OptAlg
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, max_iter=10, x0=None, mu=1.0, null_k=0.5, trigger_dual=None):
-        super(ProxBundle, self).__init__(objective, max_iter=max_iter, x0=x0)
+    def __init__(self, objective, mu=1.0, null_k=0.5, **kwargs):
+        super(ProxBundle, self).__init__(objective, **kwargs)
 
         self.constraints = []
         self.p = cp.Variable(self.x_dim)  # variable of optimization
@@ -49,12 +49,17 @@ class ProxBundle(OptAlg):
         self.cur_y = self.p.value
 
         # Find number of tight constraints
-        self.cur_tight = sum([(self.constraints[i].dual_value[i]>0) for i in range(len(self.constraints))])
+        self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
+        thres = 1e-6 * max(self.cur_duals)
+        self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
+        self.cur_tight = sum(self.cur_active)
 
         # Update paths and bundle constraints
         self.update_params(self.v.value)
 
     def update_params(self, expected):
+
+        super(ProxBundle,self).update_params()
 
         if self.path_y is not None:
             self.path_y = np.concatenate((self.path_y, self.cur_y[np.newaxis]))
@@ -93,3 +98,7 @@ class ProxBundle(OptAlg):
         # Even if it is null step, add a constraint to cutting plane model
         self.constraints += [(cur_fy.copy() +
                               orcl_call['df'].copy() @ (self.p - self.cur_y.copy())) <= self.v]
+
+    def save_bundle(self):
+        self.saved_bundle = {'bundle': self.path_y[np.array(self.cur_active)],
+                             'iter': self.cur_iter + 1}
