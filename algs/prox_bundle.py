@@ -5,7 +5,7 @@ from IPython import embed
 from algs.optAlg import OptAlg
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, max_iter=10, x0=None, mu=1.0, null_k=0.5):
+    def __init__(self, objective, max_iter=10, x0=None, mu=1.0, null_k=0.5, trigger_dual=None):
         super(ProxBundle, self).__init__(objective, max_iter=max_iter, x0=x0)
 
         self.constraints = []
@@ -20,7 +20,8 @@ class ProxBundle(OptAlg):
         self.cur_x = self.x0
         self.cur_y = self.x0  # the auxiliary variables will null values
         self.path_y = None
-        self.total_null_serious = 0
+        self.total_serious      = 0
+        self.total_null         = 0
 
         # Some other useful info
         self.cur_tight = 0
@@ -48,7 +49,7 @@ class ProxBundle(OptAlg):
         self.cur_y = self.p.value
 
         # Find number of tight constraints
-        self.cur_tight = sum([(self.constraints[i].dual_value>0) for i in range(len(self.constraints))])
+        self.cur_tight = sum([(self.constraints[i].dual_value[i]>0) for i in range(len(self.constraints))])
 
         # Update paths and bundle constraints
         self.update_params(self.v.value)
@@ -83,9 +84,12 @@ class ProxBundle(OptAlg):
 
             self.tight_x += [self.cur_tight]
 
+            self.total_serious += 1
+        else:
+            self.total_null += 1
+
         self.cur_iter += 1 # Count null steps as interations
 
         # Even if it is null step, add a constraint to cutting plane model
         self.constraints += [(cur_fy.copy() +
                               orcl_call['df'].copy() @ (self.p - self.cur_y.copy())) <= self.v]
-        self.total_null_serious += 1
