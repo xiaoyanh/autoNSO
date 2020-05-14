@@ -21,6 +21,12 @@ class ProxBundle(OptAlg):
         self.cur_y = self.x0  # the auxiliary variables will null values
         self.path_y = None
         self.total_null_serious = 0
+
+        # Some other useful info
+        self.cur_tight = 0
+        self.tight_x = []
+        self.tight_y = []
+
         self.update_params(None)
 
     def step(self):
@@ -37,9 +43,12 @@ class ProxBundle(OptAlg):
 
         # If you don't have mosek just do:
         prob.solve(warm_start=True)
-        embed()
+
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value
+
+        # Find number of tight constraints
+        self.cur_tight = sum([(self.constraints[i].dual_value>1e-10) for i in range(len(self.constraints))])
 
         # Update paths and bundle constraints
         self.update_params(self.v.value)
@@ -50,6 +59,8 @@ class ProxBundle(OptAlg):
             self.path_y = np.concatenate((self.path_y, self.cur_y[np.newaxis]))
         else:
             self.path_y = self.cur_y[np.newaxis]
+
+        self.tight_y += [self.cur_tight]
 
         orcl_call = self.objective.call_oracle(self.cur_y)
         cur_fy = orcl_call['f']
@@ -69,7 +80,10 @@ class ProxBundle(OptAlg):
             else:
                 self.path_x = self.cur_x[np.newaxis]
                 self.path_fx = self.cur_fx[np.newaxis]
-            self.cur_iter += 1
+
+            self.tight_x += [self.cur_tight]
+
+        self.cur_iter += 1 # Count null steps as interations
 
         # Even if it is null step, add a constraint to cutting plane model
         self.constraints += [(cur_fy.copy() +

@@ -3,11 +3,13 @@
 #%%
 
 import numpy as np
-from vis.visualize import OptPlot
-from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
-from algs.newton_bundle import NewtonBundle
+from IPython import embed
 from algs.torch_alg import LBFGS
+from vis.visualize import OptPlot
 from algs.prox_bundle import ProxBundle
+from algs.newton_bundle import NewtonBundle
+from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
+
 
 # Run newton-bundle optimization algorithm
 n = 50
@@ -21,9 +23,11 @@ x0 = np.random.randn(n)
 
 algs = []
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=10, null_k=0.001)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=2, null_k=0.001)
 optAlg2.optimize()
 algs += [optAlg2]
+
+embed()
 
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=50, k=bund_sz)
 optAlg0.optimize()
