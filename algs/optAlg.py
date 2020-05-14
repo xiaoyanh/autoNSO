@@ -62,7 +62,7 @@ class OptAlg:
         return False
     
     def update_params(self):
-        if self.switch_crit is not None and self.switch_crit(self):
+        if self.switch_crit is not None and self.switch_crit(self) and self.saved_bundle is None:
             self.save_bundle()
         pass
 

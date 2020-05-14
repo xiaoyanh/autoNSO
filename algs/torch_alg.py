@@ -118,4 +118,5 @@ class LBFGS(TorchAlg):
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
         self.saved_bundle = {'bundle': self.path_x[-min(2*len(self.cur_x),len(self.path_x)):],
-                             'iter': self.cur_iter}
+                             'iter': self.cur_iter,
+                             'x'   : self.cur_x.copy()}

@@ -171,7 +171,6 @@ class OptPlot:
             shift = 0
             y_label = 'Objective Value (log-scale)'
 
-
         for alg in self.opt_algs:
             ax.plot(np.arange(alg.total_iter), alg.path_fx + shift,
                     color=next(palette), marker=next(markers),

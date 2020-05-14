@@ -7,33 +7,47 @@ from algs.optAlg import OptAlg
 
 # Subgradient method
 class NewtonBundle(OptAlg):
-    def __init__(self, objective, max_iter=10, x0=None, k=4, S=None, delta_thres=0, diam_thres=0):
+    def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, warm_start=None, **kwargs):
         objective.oracle_output='hess+'
 
-        super(NewtonBundle, self).__init__(objective, max_iter=max_iter, x0=x0)
-        self.name = 'NewtonBundle (k='+str(k)+')'
+        super(NewtonBundle, self).__init__(objective, **kwargs)
 
         # Set up criterion
         self.criterion = self.objective.obj_func
 
         # Add start with initial point
-        self.cur_x = self.x0
-        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.float,requires_grad=False)).data.numpy()
         self.cur_lam = None
         self.delta   = float('inf')
         self.delta_thres = delta_thres
         self.diam_thres  = diam_thres
 
         # Prepare the bundle
-        self.k = k  # bundle size
-        if S is None: # If bundle is none, randomly initialize it (k * n)
+        if warm_start is not None:
+            self.cur_x  = warm_start['x']
+            self.S      = warm_start['bundle']
+            self.cur_iter = warm_start['iter']
+            self.k = self.S.shape[0]
+
+            self.x0 = None
+            self.x_dim = len(self.cur_x)
+
+            self.path_x  = np.zeros([self.cur_iter, self.x_dim]) * np.nan
+            self.path_fx = np.zeros([self.cur_iter]) * np.nan
+        else:
+            self.cur_x = self.x0
+            self.S = None
+            self.k = k  # bundle size
+
+        self.name = 'NewtonBundle (k=' + str(self.k) + ')'
+
+        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.float, requires_grad=False)).data.numpy()
+
+        if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])
             self.S[0,:] = self.x0
             if self.k > 1:
                 self.S[1:,:] = self.x0 + np.random.randn(self.k-1,self.x_dim)
-        else:
-            assert S.shape == (self.k, self.x_dim)
-            self.S = S
+
         self.update_params()
 
         # Add higher order info results
@@ -66,6 +80,20 @@ class NewtonBundle(OptAlg):
         self.delta = np.sqrt(prob.value)
 
         # Solve optimality conditions for new x
+        # x = cp.Variable(self.x_dim)
+        # z = cp.Variable((self.k,self.x_dim))
+        # t = cp.Variable()
+        #
+        # constr = []
+        # obj = 0
+        # for i in range(self.k):
+        #     constr += [self.fS[i] + self.dfS[i]@z[i,:] == t]
+        #     constr += [z[i,:] == x - self.S[i,:]]
+        #     obj += self.lam_cur[i]*self.fS[i] + self.lam_cur[i]*self.dfS[i,:]@z[i,:] + 0.5*self.lam_cur[i]*cp.quad_form(z[i,:], self.d2fS[i,:,:])
+        # prob2 = cp.Problem(cp.Minimize(obj),constr)
+        # prob2.solve(solver=cp.GUROBI,verbose=True)
+        # self.cur_x = x.value
+
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
 
@@ -80,14 +108,19 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A)@b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A) @ b)[0:self.x_dim]
+        # x = cp.Variable(self.x_dim+self.k+1)
+        # prob = cp.Problem(cp.Minimize(0),[A @ x == b])
+        # prob.solve(solver=cp.GUROBI)
+        # self.cur_x = x.value[0:self.x_dim]
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
         self.cur_fx = oracle['f']
 
         # k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
-        k_sub = np.argmin(self.lam_cur)
+        # k_sub = np.argmin(self.lam_cur)
+        k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
 
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx

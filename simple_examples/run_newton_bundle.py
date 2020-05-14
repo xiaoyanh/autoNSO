@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #%%
 
+import importlib
 import numpy as np
 from IPython import embed
 from algs.torch_alg import LBFGS
@@ -14,6 +15,7 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
+iters = 100
 
 objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=10
 # objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3
@@ -21,23 +23,25 @@ objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=10
 
 x0 = np.random.randn(n)
 
-algs = []
+alg_list = []
 
 # Criteria for switching to newton-bundle
 def crit(met):
-    return met.cur_iter == 25
+    return met.cur_iter == 75
+    # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=50, mu=mu_sz, null_k=0.001, switch_crit=crit)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=0.001, switch_crit=crit)
 optAlg2.optimize()
-algs += [optAlg2]
+alg_list += [optAlg2]
 
-optAlg1 = LBFGS(objective, x0=x0, max_iter=50, hist=100, lr=0.01, switch_crit=crit)
-optAlg1.optimize()
-algs += [optAlg1]
+# optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=100, lr=0.01, switch_crit=crit)
+# optAlg1.optimize()
+# alg_list += [optAlg1]
 
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=50, k=bund_sz)
+# Run Newton-Bundle
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz)#, warm_start=optAlg2.saved_bundle)
 optAlg0.optimize()
-algs += [optAlg0]
+alg_list += [optAlg0]
 
-opt_plot = OptPlot(opt_algs=algs)
+opt_plot = OptPlot(opt_algs=alg_list)
 opt_plot.plotValue()

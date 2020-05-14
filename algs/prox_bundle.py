@@ -5,7 +5,7 @@ from IPython import embed
 from algs.optAlg import OptAlg
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, mu=1.0, null_k=0.5, **kwargs):
+    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
         self.constraints = []
@@ -22,6 +22,7 @@ class ProxBundle(OptAlg):
         self.path_y = None
         self.total_serious      = 0
         self.total_null         = 0
+        self.ignore_null        = ignore_null
 
         # Some other useful info
         self.cur_tight = 0
@@ -43,14 +44,14 @@ class ProxBundle(OptAlg):
         #        prob.solve(solver=cp.MOSEK,mosek_params=m_params)
 
         # If you don't have mosek just do:
-        prob.solve(warm_start=True)
+        prob.solve(warm_start=True, solver=cp.GUROBI)
 
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value
 
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
-        thres = 1e-6 * max(self.cur_duals)
+        thres = 1e-2 * max(self.cur_duals)
         self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
         self.cur_tight = sum(self.cur_active)
 
@@ -71,6 +72,15 @@ class ProxBundle(OptAlg):
         orcl_call = self.objective.call_oracle(self.cur_y)
         cur_fy = orcl_call['f']
 
+        if not self.ignore_null:
+            self.path_x = self.path_y
+
+            self.cur_fx = self.objective.obj_func(self.cur_x).data.numpy()
+            if self.path_fx is not None:
+                self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
+            else:
+                self.path_fx = self.cur_fx[np.newaxis]
+
         # Whether to take a serious step
         if expected is not None:
             serious = ((self.path_fx[-1] - cur_fy) > self.null_k * (self.path_fx[-1] - expected))
@@ -79,15 +89,17 @@ class ProxBundle(OptAlg):
 
         if serious:
             self.cur_x = self.cur_y
-            self.cur_fx = orcl_call['f']
-            if self.path_x is not None:
-                self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
-                self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
-            else:
-                self.path_x = self.cur_x[np.newaxis]
-                self.path_fx = self.cur_fx[np.newaxis]
 
-            self.tight_x += [self.cur_tight]
+            if self.ignore_null:
+                self.cur_fx = orcl_call['f']
+                if self.path_x is not None:
+                    self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
+                    self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
+                else:
+                    self.path_x = self.cur_x[np.newaxis]
+                    self.path_fx = self.cur_fx[np.newaxis]
+
+                self.tight_x += [self.cur_tight]
 
             self.total_serious += 1
         else:
@@ -102,4 +114,5 @@ class ProxBundle(OptAlg):
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
         self.saved_bundle = {'bundle': self.path_y[np.array(self.cur_active)],
-                             'iter': self.cur_iter}
+                             'iter': self.cur_iter,
+                             'x'   : self.cur_x.copy()}
