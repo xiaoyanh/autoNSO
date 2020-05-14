@@ -12,7 +12,7 @@ Created on Mon Sep  2 10:18:22 2019
 import sys
 sys.path.append('..')
 from obj.objective import Objective
-from algs.optAlg import ProxBundle
+from algs.prox_bundle import ProxBundle
 
 # f(x,y) = |x| + y^2
 def simple2D(x):

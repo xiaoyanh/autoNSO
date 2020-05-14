@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 import torch
 from obj.objective import Objective
-from algs.optAlg import ProxBundle
+from algs.prox_bundle import ProxBundle
 from vis.visualize import OptPlot
 
 #%%

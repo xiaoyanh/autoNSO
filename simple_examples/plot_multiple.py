@@ -13,7 +13,8 @@ import sys
 sys.path.append('..')
 import torch
 from obj.objective import Objective
-from algs.optAlg import ProxBundle, Subgradient, Nesterov, LBFGS
+from algs.prox_bundle import ProxBundle
+from algs.torch_alg import Subgradient, Nesterov, LBFGS
 from vis.visualize import OptPlot
 
 #%%

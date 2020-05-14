@@ -6,7 +6,8 @@ import numpy as np
 from vis.visualize import OptPlot
 from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 from algs.newton_bundle import NewtonBundle
-from algs.optAlg import LBFGS, ProxBundle
+from algs.torch_alg import LBFGS
+from algs.prox_bundle import ProxBundle
 
 # Run newton-bundle optimization algorithm
 n = 50
