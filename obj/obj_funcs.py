@@ -3,10 +3,11 @@ from IPython import embed
 from obj.objective import Objective
 from torch import abs, max, sum, norm, einsum, stack, symeig, tensor, Tensor
 
-
 def simple2D(x):
     return max(abs(x[0]),(0.5 * x[1]**2))
 Simple2D = Objective(simple2D)
+
+# Below are example objective functions from Lewis-Wylie 2019 (https://arxiv.org/abs/1907.11742)
 
 # Creates a strongly convex objective function for particular n and k
 def stronglyconvex(n=50, k=10, seed=0, **kwargs):
