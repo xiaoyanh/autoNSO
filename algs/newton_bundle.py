@@ -59,7 +59,7 @@ class NewtonBundle(OptAlg):
         # Find lambda (warm start with previous iteration)
         self.lam_var.value = self.cur_lam
         prob = cp.Problem(cp.Minimize(cp.quad_form(self.p,np.eye(self.x_dim))), self.constraints+[self.lam_var @ self.dfS == self.p])
-        prob.solve(warm_start=True)
+        prob.solve(warm_start=True, solver=cp.GUROBI)
         self.lam_cur = self.lam_var.value
 
         # Solve optimality conditions for x
@@ -68,6 +68,7 @@ class NewtonBundle(OptAlg):
         # Solve optimality conditions for new x
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
+
         A[0:self.x_dim,0:self.x_dim]=top_left
         A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
         A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
