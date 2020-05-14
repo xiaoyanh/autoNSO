@@ -48,7 +48,7 @@ class ProxBundle(OptAlg):
         self.cur_y = self.p.value
 
         # Find number of tight constraints
-        self.cur_tight = sum([(self.constraints[i].dual_value>1e-10) for i in range(len(self.constraints))])
+        self.cur_tight = sum([(self.constraints[i].dual_value>0) for i in range(len(self.constraints))])
 
         # Update paths and bundle constraints
         self.update_params(self.v.value)
