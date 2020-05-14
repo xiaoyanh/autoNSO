@@ -100,5 +100,6 @@ class ProxBundle(OptAlg):
                               orcl_call['df'].copy() @ (self.p - self.cur_y.copy())) <= self.v]
 
     def save_bundle(self):
+        print('Bundled Saving Triggered', flush=True)
         self.saved_bundle = {'bundle': self.path_y[np.array(self.cur_active)],
                              'iter': self.cur_iter + 1}
