@@ -115,11 +115,7 @@ class LBFGS(TorchAlg):
         self.cur_x = self.p.data.numpy().copy()
         self.update_params()
 
-    def update_params(self):
-        super(TorchAlg, self).update_params()
-
     def save_bundle(self):
-        assert len(self.path_y) >= 2*len(self.cur_x)
         print('Bundled Saving Triggered', flush=True)
-        self.saved_bundle = {'bundle': self.path_x[-2*len(self.cur_x):],
-                             'iter': self.cur_iter + 1}
+        self.saved_bundle = {'bundle': self.path_x[-min(2*len(self.cur_x),len(self.path_x)):],
+                             'iter': self.cur_iter}

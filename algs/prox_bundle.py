@@ -102,4 +102,4 @@ class ProxBundle(OptAlg):
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
         self.saved_bundle = {'bundle': self.path_y[np.array(self.cur_active)],
-                             'iter': self.cur_iter + 1}
+                             'iter': self.cur_iter}
