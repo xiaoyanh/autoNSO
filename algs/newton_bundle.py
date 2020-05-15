@@ -97,8 +97,8 @@ class NewtonBundle(OptAlg):
 
         # Check optimality conditions
         # if self.cur_iter == 26:
-        #     self.cur_x = (np.linalg.pinv(A,rcond=1e-16) @ b)[0:self.x_dim]
-        #     mu  = (np.linalg.pinv(A,rcond=1e-16) @ b)[self.x_dim:self.x_dim+self.k]
+        #     self.cur_x = (np.linalg.pinv(A,rcond=1e-12) @ b)[0:self.x_dim]
+        #     mu  = (np.linalg.pinv(A,rcond=1e-12) @ b)[self.x_dim:self.x_dim+self.k]
         #     tmp = np.zeros(self.k)
         #     tmp2 = np.zeros(self.x_dim)
         #     for i in range(self.k):
