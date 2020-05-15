@@ -35,13 +35,13 @@ class ProxBundle(OptAlg):
 
         super(ProxBundle, self).step()
 
-        prox_objective = self.v + 0.5 * (self.mu / 2.0) * cp.power(cp.norm(self.p - self.cur_x, 2), 2)
+        prox_objective = self.v + 0.5 * (self.mu / 2.0) * cp.quad_form(self.p - self.cur_x, np.eye(self.x_dim))
         self.p.value = self.cur_y  # Warm-starting
         prob = cp.Problem(cp.Minimize(prox_objective), self.constraints)
 
         # Use MOSEK for accuracy
-        #        m_params = {'MSK_DPAR_INTPNT_CO_TOL_PFEAS':1e-12}
-        #        prob.solve(solver=cp.MOSEK,mosek_params=m_params)
+        # m_params = {'MSK_DPAR_INTPNT_CO_TOL_PFEAS':1e-12}
+        # prob.solve(solver=cp.MOSEK,mosek_params=m_params)
 
         # If you don't have mosek just do:
         prob.solve(warm_start=True, solver=cp.GUROBI)
@@ -51,7 +51,7 @@ class ProxBundle(OptAlg):
 
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
-        thres = 1e-2 * max(self.cur_duals)
+        thres = 1e-6 * max(self.cur_duals)
         self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
         self.cur_tight = sum(self.cur_active)
 

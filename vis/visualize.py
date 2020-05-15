@@ -147,29 +147,25 @@ class OptPlot:
         max_iters = float('-inf')
         max_f     = float('-inf')
         min_f     = float('inf')
-        min_mag   = float('inf')
-        
+
+        all_vals = np.array([])
         for alg in self.opt_algs:
             
             if alg.total_iter > max_iters:
                 max_iters = alg.total_iter
-                
-            if max(alg.path_fx) > max_f:
-                max_f = max(alg.path_fx)
-            if min(alg.path_fx) < min_f:
-                min_f = min(alg.path_fx)
 
-            if min(abs(alg.path_fx)) < min_mag:
-                min_mag = min(abs(alg.path_fx))
+            all_vals = np.concatenate((all_vals,alg.path_fx))
 
-        if min_f < 0:
-            max_f -= min_f
-            shift = -min_f + min_mag
-            min_f = min_mag
+        if min(all_vals) < 0:
             y_label = 'Shifted Objective Value (log-scale)'
+            shift   = min(abs(all_vals[all_vals != min(all_vals)] - min(all_vals))) * 0.1
+            shift  -= min(all_vals)
         else:
-            shift = 0
             y_label = 'Objective Value (log-scale)'
+            shift = 0
+
+        max_f = max(all_vals+shift)
+        min_f = min(all_vals+shift)
 
         for alg in self.opt_algs:
             ax.plot(np.arange(alg.total_iter), alg.path_fx + shift,

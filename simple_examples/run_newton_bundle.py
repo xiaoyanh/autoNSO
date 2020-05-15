@@ -17,9 +17,9 @@ n = 50
 k = 10
 iters = 100
 
-objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=10
-# objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3
-# objective = partlysmooth(n=50,m=25,oracle_output='hess+'); bund_sz=10; mu_sz=2
+# objective = stronglyconvex(n=n,k=k,oracle_output='hess+'); bund_sz=10; mu_sz=1e3
+# objective = nonconvex(n=n,k=k,oracle_output='hess+'); bund_sz=4; mu_sz=1e2
+objective = partlysmooth(n=50,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1
 
 x0 = np.random.randn(n)
 
@@ -30,16 +30,16 @@ def crit(met):
     return met.cur_iter == 75
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=0.001, switch_crit=crit)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3)# , switch_crit=crit)
 optAlg2.optimize()
 alg_list += [optAlg2]
 
-# optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=100, lr=0.01, switch_crit=crit)
-# optAlg1.optimize()
-# alg_list += [optAlg1]
+optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=100, lr=0.01)
+optAlg1.optimize()
+alg_list += [optAlg1]
 
 # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz)#, warm_start=optAlg2.saved_bundle)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz)# , warm_start=optAlg2.saved_bundle)
 optAlg0.optimize()
 alg_list += [optAlg0]
 

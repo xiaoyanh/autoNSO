@@ -108,9 +108,9 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A) @ b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A,rcond=1e-6) @ b)[0:self.x_dim]
         # x = cp.Variable(self.x_dim+self.k+1)
-        # prob = cp.Problem(cp.Minimize(0),[A @ x == b])
+        # prob = cp.Problem(cp.Minimize(cp.quad_form(x,np.eye(self.x_dim+self.k+1))),[A @ x == b])
         # prob.solve(solver=cp.GUROBI)
         # self.cur_x = x.value[0:self.x_dim]
 
