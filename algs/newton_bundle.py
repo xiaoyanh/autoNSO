@@ -74,7 +74,7 @@ class NewtonBundle(OptAlg):
         self.lam_var.value = self.cur_lam
         prob = cp.Problem(cp.Minimize(cp.quad_form(self.p,np.eye(self.x_dim))), self.constraints+[self.lam_var @ self.dfS == self.p])
         prob.solve(warm_start=True, solver=cp.GUROBI)
-        self.lam_cur = self.lam_var.value
+        self.lam_cur = self.lam_var.value.copy()
 
         # Solve optimality conditions for x
         self.delta = np.sqrt(prob.value)
@@ -116,7 +116,23 @@ class NewtonBundle(OptAlg):
 
         # k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
         # k_sub = np.argmin(self.lam_cur)
-        k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
+        # k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
+
+        # Combinatorially find leaving index
+        k_sub = None
+        conv_val = float('inf')
+        for i in range(self.k):
+            dfS2 = self.dfS.copy()
+            dfS2[i] = oracle['df']
+
+            # Find lambda (warm start with previous iteration)
+            prob = cp.Problem(cp.Minimize(cp.quad_form(self.p, np.eye(self.x_dim))),
+                              self.constraints + [self.lam_var @ dfS2 == self.p])
+            prob.solve(solver=cp.GUROBI)
+
+            if prob.value < conv_val:
+                conv_val = prob.value.copy()
+                k_sub    = i
 
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx
