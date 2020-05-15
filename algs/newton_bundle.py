@@ -137,7 +137,7 @@ class NewtonBundle(OptAlg):
             prob.solve(solver=cp.GUROBI)
 
             return prob.value
-        jobs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
+        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
         k_sub = np.argmin(jobs)
 
         self.S[k_sub, :] = self.cur_x
