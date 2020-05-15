@@ -79,21 +79,6 @@ class NewtonBundle(OptAlg):
         # Solve optimality conditions for x
         self.delta = np.sqrt(prob.value)
 
-        # Solve optimality conditions for new x
-        # x = cp.Variable(self.x_dim)
-        # z = cp.Variable((self.k,self.x_dim))
-        # t = cp.Variable()
-        #
-        # constr = []
-        # obj = 0
-        # for i in range(self.k):
-        #     constr += [self.fS[i] + self.dfS[i]@z[i,:] == t]
-        #     constr += [z[i,:] == x - self.S[i,:]]
-        #     obj += self.lam_cur[i]*self.fS[i] + self.lam_cur[i]*self.dfS[i,:]@z[i,:] + 0.5*self.lam_cur[i]*cp.quad_form(z[i,:], self.d2fS[i,:,:])
-        # prob2 = cp.Problem(cp.Minimize(obj),constr)
-        # prob2.solve(solver=cp.GUROBI,verbose=True)
-        # self.cur_x = x.value
-
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
 
@@ -108,11 +93,18 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A,rcond=1e-6) @ b)[0:self.x_dim]
-        # x = cp.Variable(self.x_dim+self.k+1)
-        # prob = cp.Problem(cp.Minimize(cp.quad_form(x,np.eye(self.x_dim+self.k+1))),[A @ x == b])
-        # prob.solve(solver=cp.GUROBI)
-        # self.cur_x = x.value[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A,rcond=1e-12) @ b)[0:self.x_dim]
+
+        # Check optimality conditions
+        # if self.cur_iter == 26:
+        #     self.cur_x = (np.linalg.pinv(A,rcond=1e-16) @ b)[0:self.x_dim]
+        #     mu  = (np.linalg.pinv(A,rcond=1e-16) @ b)[self.x_dim:self.x_dim+self.k]
+        #     tmp = np.zeros(self.k)
+        #     tmp2 = np.zeros(self.x_dim)
+        #     for i in range(self.k):
+        #         tmp[i] = self.fS[i] + self.dfS[i,:]@(self.cur_x - self.S[i,:])
+        #         tmp2 += self.lam_cur[i] * self.d2fS[i] @ (self.cur_x - self.S[i,:])
+        #         tmp2 += mu[i] * self.dfS[i]
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
