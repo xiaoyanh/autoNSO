@@ -105,6 +105,10 @@ class NewtonBundle(OptAlg):
         #         tmp[i] = self.fS[i] + self.dfS[i,:]@(self.cur_x - self.S[i,:])
         #         tmp2 += self.lam_cur[i] * self.d2fS[i] @ (self.cur_x - self.S[i,:])
         #         tmp2 += mu[i] * self.dfS[i]
+        #
+        #     assert np.all([np.isclose(tmp[0], val) for val in tmp]) # Check active set
+        #     assert np.isclose(np.linalg.norm(tmp2),0) # Check first order cond
+        #     assert np.isclose(sum(mu),1) # Check duals
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)

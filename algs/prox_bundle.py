@@ -55,6 +55,16 @@ class ProxBundle(OptAlg):
         self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
         self.cur_tight = sum(self.cur_active)
 
+        # Check tight set is actually tight
+        # if self.cur_iter == 75:
+        #     act_ind = np.where(self.cur_active)[0]
+        #     tmp = []
+        #     for i in act_ind:
+        #         orcl_call = self.objective.call_oracle(self.path_y[i])
+        #         tmp += [orcl_call['f'] + orcl_call['df'] @ (self.cur_y - self.path_y[i])]
+        #
+        #     assert np.all([np.isclose(self.v.value,val) for val in tmp])
+
         # Update paths and bundle constraints
         self.update_params(self.v.value)
 
