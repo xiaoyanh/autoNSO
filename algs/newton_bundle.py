@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import cvxpy as cp
+import multiprocessing
 
 from IPython import embed
 from algs.optAlg import OptAlg
@@ -136,7 +137,7 @@ class NewtonBundle(OptAlg):
             prob.solve(solver=cp.GUROBI)
 
             return prob.value
-        jobs = Parallel(n_jobs=8)(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
+        jobs = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
         k_sub = np.argmin(jobs)
 
         self.S[k_sub, :] = self.cur_x
