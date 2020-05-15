@@ -34,12 +34,12 @@ def crit(met):
 # optAlg2.optimize()
 # alg_list += [optAlg2]
 #
-# optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=100, lr=0.01)
+# optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=100, lr=0.01) #, switch_crit=crit)
 # optAlg1.optimize()
 # alg_list += [optAlg1]
 
 # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz)# , warm_start=optAlg2.saved_bundle)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz) #, warm_start=optAlg1.saved_bundle)
 optAlg0.optimize()
 alg_list += [optAlg0]
 
