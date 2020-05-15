@@ -39,7 +39,7 @@ alg_list += [optAlg2]
 # alg_list += [optAlg1]
 
 # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz, warm_start=optAlg2.saved_bundle)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
 optAlg0.optimize()
 alg_list += [optAlg0]
 

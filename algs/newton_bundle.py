@@ -4,6 +4,7 @@ import cvxpy as cp
 
 from IPython import embed
 from algs.optAlg import OptAlg
+from joblib import Parallel, delayed
 
 # Subgradient method
 class NewtonBundle(OptAlg):
@@ -119,20 +120,24 @@ class NewtonBundle(OptAlg):
         # k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
 
         # Combinatorially find leaving index
-        k_sub = None
-        conv_val = float('inf')
-        for i in range(self.k):
-            dfS2 = self.dfS.copy()
-            dfS2[i] = oracle['df']
+        def conv_size(i,dfS,xdim,k,new_df):
+            dfS2 = dfS.copy()
+
+            p_tmp = cp.Variable(xdim)
+            lam   = cp.Variable(k)
+            dfS2[i] = new_df
+
+            self.constraints = [np.ones(k) @ lam == 1]
+            self.constraints += [lam >= 0]
 
             # Find lambda (warm start with previous iteration)
-            prob = cp.Problem(cp.Minimize(cp.quad_form(self.p, np.eye(self.x_dim))),
-                              self.constraints + [self.lam_var @ dfS2 == self.p])
+            prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
+                              self.constraints + [lam @ dfS2 == p_tmp])
             prob.solve(solver=cp.GUROBI)
 
-            if prob.value < conv_val:
-                conv_val = prob.value.copy()
-                k_sub    = i
+            return prob.value
+        jobs = Parallel(n_jobs=8)(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
+        k_sub = np.argmin(jobs)
 
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx
