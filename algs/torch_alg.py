@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import cvxpy as cp
 import torch.optim as optim
+import algs.lbfgs as lbfgs
 
 from IPython import embed
 from algs.optAlg import OptAlg
@@ -86,10 +87,11 @@ class Nesterov(TorchAlg):
 
 
 class LBFGS(TorchAlg):
-    def __init__(self, objective, lr=1, decay=0.9, hist=100, wolfe_ls=True, **kwargs):
+    def __init__(self, objective, lr=1, decay=0.9, hist=100, linesearch=True, ls_params=None,
+                 tolerance_change=1e-9, tolerance_grad=1e-7, **kwargs):
         super(LBFGS, self).__init__(objective, **kwargs)
 
-        if wolfe_ls:
+        if linesearch:
             self.linesearch = 'strong_wolfe'
         else:
             self.linesearch = None
@@ -101,7 +103,9 @@ class LBFGS(TorchAlg):
         self.name += (' (lr=' + str(self.lr) + ',decay=' + str(self.decay)
                       + ',hist=' + str(self.hist) + ')')
 
-        self.optimizer = optim.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch)
+        # This is a modified BFGS from PyTorch
+        self.optimizer = lbfgs.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,
+                                     ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad)
         self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.decay)
 
     def step(self):
