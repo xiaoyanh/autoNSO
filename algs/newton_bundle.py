@@ -42,7 +42,7 @@ class NewtonBundle(OptAlg):
 
         self.name = 'NewtonBundle (k=' + str(self.k) + ')'
 
-        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.float, requires_grad=False)).data.numpy()
+        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])

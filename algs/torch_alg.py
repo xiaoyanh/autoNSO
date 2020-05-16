@@ -19,7 +19,7 @@ class TorchAlg(OptAlg):
 
         # Set up criterion and thing to be optimized
         self.criterion = self.objective.obj_func
-        self.p = torch.tensor(self.x0, dtype=torch.float, requires_grad=True)
+        self.p = torch.tensor(self.x0, dtype=torch.double, requires_grad=True)
 
     def step(self):
 
@@ -99,9 +99,8 @@ class LBFGS(TorchAlg):
         self.lr = lr
         self.decay = decay
         self.hist = hist
-        self.name = 'LBFGS'
-        self.name += (' (lr=' + str(self.lr) + ',decay=' + str(self.decay)
-                      + ',hist=' + str(self.hist) + ')')
+        self.name = 'BFGS'
+        self.name += (' (lr=' + str(self.lr) + ',decay=' + str(self.decay))
 
         # This is a modified BFGS from PyTorch
         self.optimizer = lbfgs.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,

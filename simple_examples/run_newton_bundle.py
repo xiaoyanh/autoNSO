@@ -29,19 +29,19 @@ def crit(met):
     return met.cur_iter == cut
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
-optAlg2.optimize()
-alg_list += [optAlg2]
-
-optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=1, linesearch=True,
-                ls_params={'c1':1e-11, 'c2':1e1, 'max_ls':100}, tolerance_change=1e-11, tolerance_grad=1e-11) #, switch_crit=crit)
+optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch=True,
+                ls_params={'c1':1e-16, 'c2':1e3, 'max_ls':1e5}, tolerance_change=1e-16, tolerance_grad=1e-16) #, switch_crit=crit)
 optAlg1.optimize()
 alg_list += [optAlg1]
 
+# optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
+# optAlg2.optimize()
+# alg_list += [optAlg2]
+
 # # Run Newton-Bundle
-# optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
-# optAlg0.optimize()
-# alg_list += [optAlg0]
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
+optAlg0.optimize()
+alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list)
 opt_plot.plotValue()

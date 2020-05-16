@@ -24,7 +24,7 @@ class Objective:
         
         if type(x) != torch.Tensor:
             try:
-                x = torch.tensor(x, dtype=torch.float,
+                x = torch.tensor(x, dtype=torch.double,
                                  requires_grad=self.requires_grad)
             except:
                 raise Exception('Optimization variable must be Pytorch tensor\
