@@ -19,7 +19,7 @@ class NewtonBundle(OptAlg):
 
         # Add start with initial point
         self.cur_lam = None
-        self.cur_delta   = float('inf')
+        self.cur_delta   = np.array(np.nan)
         self.delta_thres = delta_thres
         self.diam_thres  = diam_thres
 
@@ -168,4 +168,7 @@ class NewtonBundle(OptAlg):
         self.cur_iter += 1
 
     def stop_cond(self):
-        return (self.cur_delta < self.delta_thres) and (self.cur_diam < self.diam_thres)
+
+        return ((not np.isnan(self.cur_delta))
+                and (self.cur_delta < self.delta_thres)
+                and (self.cur_diam < self.diam_thres))
