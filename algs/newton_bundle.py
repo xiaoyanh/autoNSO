@@ -19,7 +19,7 @@ class NewtonBundle(OptAlg):
 
         # Add start with initial point
         self.cur_lam = None
-        self.delta   = float('inf')
+        self.cur_delta   = float('inf')
         self.delta_thres = delta_thres
         self.diam_thres  = diam_thres
 
@@ -35,22 +35,21 @@ class NewtonBundle(OptAlg):
 
             self.path_x  = np.zeros([self.cur_iter, self.x_dim]) * np.nan
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
+            self.path_diam = np.zeros([self.cur_iter]) * np.nan
+            self.path_delta = np.zeros([self.cur_iter]) * np.nan
         else:
             self.cur_x = self.x0
             self.S = None
             self.k = k  # bundle size
+        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         self.name = 'NewtonBundle (k=' + str(self.k) + ')'
-
-        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])
             self.S[0,:] = self.x0
             if self.k > 1:
                 self.S[1:,:] = self.x0 + np.random.randn(self.k-1,self.x_dim)
-
-        self.update_params()
 
         # Add higher order info results
         self.fS   = np.zeros(self.k)
@@ -61,6 +60,8 @@ class NewtonBundle(OptAlg):
             self.fS[i]   = oracle['f']
             self.dfS[i,:]  = oracle['df']
             self.d2fS[i,:,:] = oracle['d2f']
+
+        self.update_params()
 
         # Set up CVX
         self.p              = cp.Variable(self.x_dim)
@@ -79,7 +80,7 @@ class NewtonBundle(OptAlg):
         self.lam_cur = self.lam_var.value.copy()
 
         # Solve optimality conditions for x
-        self.delta = np.sqrt(prob.value)
+        self.cur_delta = np.sqrt(prob.value)
 
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
@@ -146,22 +147,25 @@ class NewtonBundle(OptAlg):
         self.d2fS[k_sub, :, :] = oracle['d2f']
 
         # Update current iterate value and update the bundle
-
         self.update_params()
 
     def update_params(self):
 
+        self.cur_diam = max(np.linalg.norm(self.S, axis=1))
+
         if self.path_x is not None:
             self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
             self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
+            self.path_diam = np.concatenate((self.path_diam, self.cur_diam[np.newaxis]))
+            self.path_delta = np.concatenate((self.path_delta, self.cur_delta[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]
-
-        self.diam = max(np.linalg.norm(self.S, axis=1))
+            self.path_diam = self.cur_diam[np.newaxis]
+            self.path_delta = self.cur_delta[np.newaxis]
 
         # Update paths and bundle constraints
         self.cur_iter += 1
 
     def stop_cond(self):
-        return (self.delta < self.delta_thres) and (self.diam < self.diam_thres)
+        return (self.cur_delta < self.delta_thres) and (self.cur_diam < self.diam_thres)

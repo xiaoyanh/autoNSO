@@ -158,17 +158,20 @@ class OptPlot:
 
         if min(all_vals) < 0:
             y_label = 'Shifted Objective Value (log-scale)'
-            shift   = min(abs(all_vals[all_vals != min(all_vals)] - min(all_vals))) * 0.1
-            shift  -= min(all_vals)
+            #shift   = min(abs(all_vals[abs(all_vals - min(all_vals))>1e-11] - min(all_vals))) * 0.1
+            shift  =  -min(all_vals)
         else:
             y_label = 'Objective Value (log-scale)'
             shift = 0
 
-        max_f = max(all_vals+shift)
-        min_f = min(all_vals+shift)
+        all_vals += shift
+        max_f = max(all_vals)
+        min_f = min(all_vals[all_vals != 0])
 
         for alg in self.opt_algs:
-            ax.plot(np.arange(alg.total_iter), alg.path_fx + shift,
+            y = alg.path_fx + shift
+            y[y==0] = np.nan
+            ax.plot(np.arange(alg.total_iter), y,
                     color=next(palette), marker=next(markers),
                     alpha=.4, label=alg.name)
 
