@@ -98,20 +98,8 @@ class NewtonBundle(OptAlg):
 
         self.cur_x = (np.linalg.pinv(A,rcond=1e-12) @ b)[0:self.x_dim]
 
-        # Check optimality conditions
-        # if self.cur_iter == 26:
-        #     self.cur_x = (np.linalg.pinv(A,rcond=1e-12) @ b)[0:self.x_dim]
-        #     mu  = (np.linalg.pinv(A,rcond=1e-12) @ b)[self.x_dim:self.x_dim+self.k]
-        #     tmp = np.zeros(self.k)
-        #     tmp2 = np.zeros(self.x_dim)
-        #     for i in range(self.k):
-        #         tmp[i] = self.fS[i] + self.dfS[i,:]@(self.cur_x - self.S[i,:])
-        #         tmp2 += self.lam_cur[i] * self.d2fS[i] @ (self.cur_x - self.S[i,:])
-        #         tmp2 += mu[i] * self.dfS[i]
-        #
-        #     assert np.all([np.isclose(tmp[0], val) for val in tmp]) # Check active set
-        #     assert np.isclose(np.linalg.norm(tmp2),0) # Check first order cond
-        #     assert np.isclose(sum(mu),1) # Check duals
+        # optimality check
+        # self.opt_check(A, b)
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
@@ -172,3 +160,16 @@ class NewtonBundle(OptAlg):
         return ((not np.isnan(self.cur_delta))
                 and (self.cur_delta < self.delta_thres)
                 and (self.cur_diam < self.diam_thres))
+
+    def opt_check(self, A, b):
+            mu  = (np.linalg.pinv(A,rcond=1e-12) @ b)[self.x_dim:self.x_dim+self.k]
+            tmp = np.zeros(self.k)
+            tmp2 = np.zeros(self.x_dim)
+            for i in range(self.k):
+                tmp[i] = self.fS[i] + self.dfS[i,:]@(self.cur_x - self.S[i,:])
+                tmp2 += self.lam_cur[i] * self.d2fS[i] @ (self.cur_x - self.S[i,:])
+                tmp2 += mu[i] * self.dfS[i]
+
+            assert np.all([np.isclose(tmp[0], val) for val in tmp]) # Check active set
+            assert np.isclose(np.linalg.norm(tmp2),0) # Check first order cond
+            assert np.isclose(sum(mu),1) # Check duals
