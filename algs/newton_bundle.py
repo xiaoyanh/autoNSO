@@ -89,15 +89,12 @@ class NewtonBundle(OptAlg):
         oracle = self.objective.call_oracle(self.cur_x)
         self.cur_fx = oracle['f']
 
-        # k_sub = np.argmax(np.linalg.norm(self.S, axis=1))
-        # k_sub = np.argmin(self.lam_cur)
-        # k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
-
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
         jobs_delta = [jobs[i][0] for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
+
         self.lam_cur = jobs[k_sub][1]
 
         self.S[k_sub, :] = self.cur_x

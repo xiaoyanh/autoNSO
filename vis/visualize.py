@@ -134,8 +134,9 @@ class OptPlot:
         plt.show()
         
     # Plot for objective function of two inputs
-    def plotValue(self):
+    def plotValue(self, val='path_fx'):
         assert len(self.opt_algs) > 0
+        assert val in ['path_fx','step_size']
         
         fig = plt.figure(figsize = (10,10))
         ax  = fig.add_subplot(111)
@@ -145,8 +146,6 @@ class OptPlot:
         markers = itertools.cycle(('*', '.', 'X', '^', 'D')) 
         
         max_iters = float('-inf')
-        max_f     = float('-inf')
-        min_f     = float('inf')
 
         all_vals = np.array([])
         for alg in self.opt_algs:
@@ -154,14 +153,17 @@ class OptPlot:
             if alg.total_iter > max_iters:
                 max_iters = alg.total_iter
 
-            all_vals = np.concatenate((all_vals,alg.path_fx))
+            all_vals = np.concatenate((all_vals,getattr(alg,val)))
 
-        if min(all_vals) < 0:
-            y_label = 'Shifted Objective Value (log-scale)'
-            #shift   = min(abs(all_vals[abs(all_vals - min(all_vals))>1e-11] - min(all_vals))) * 0.1
-            shift  =  -min(all_vals)
-        else:
-            y_label = 'Objective Value (log-scale)'
+        if val == 'path_fx':
+            if min(all_vals) < 0:
+                y_label = 'Shifted Objective Value (log-scale)'
+                shift  =  -min(all_vals)
+            else:
+                y_label = 'Objective Value (log-scale)'
+                shift = 0
+        elif val == 'step_size':
+            y_label = 'Step Size'
             shift = 0
 
         all_vals += shift
@@ -169,7 +171,7 @@ class OptPlot:
         min_f = min(all_vals[all_vals != 0])
 
         for alg in self.opt_algs:
-            y = alg.path_fx + shift
+            y = getattr(alg,val) + shift
             y[y==0] = np.nan
             ax.plot(np.arange(alg.total_iter), y,
                     color=next(palette), marker=next(markers),
