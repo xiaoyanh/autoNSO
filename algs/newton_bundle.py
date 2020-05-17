@@ -18,8 +18,6 @@ class NewtonBundle(OptAlg):
         self.criterion = self.objective.obj_func
 
         # Add start with initial point
-        self.cur_lam = None
-        self.cur_delta   = np.array(np.nan)
         self.delta_thres = delta_thres
         self.diam_thres  = diam_thres
 
@@ -61,26 +59,12 @@ class NewtonBundle(OptAlg):
             self.dfS[i,:]  = oracle['df']
             self.d2fS[i,:,:] = oracle['d2f']
 
+        self.cur_delta, self.lam_cur = get_lam(self.dfS)
         self.update_params()
-
-        # Set up CVX
-        self.p              = cp.Variable(self.x_dim)
-        self.lam_var        = cp.Variable(self.k)
-        self.constraints    = [np.ones(self.k)@self.lam_var == 1]
-        self.constraints    += [self.lam_var >= 0]
 
     def step(self):
 
         super(NewtonBundle, self).step()
-
-        # Find lambda (warm start with previous iteration)
-        self.lam_var.value = self.cur_lam
-        prob = cp.Problem(cp.Minimize(cp.quad_form(self.p,np.eye(self.x_dim))), self.constraints+[self.lam_var @ self.dfS == self.p])
-        prob.solve(warm_start=True, solver=cp.GUROBI)
-        self.lam_cur = self.lam_var.value.copy()
-
-        # Solve optimality conditions for x
-        self.cur_delta = np.sqrt(prob.value)
 
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
@@ -110,24 +94,11 @@ class NewtonBundle(OptAlg):
         # k_sub = np.argmin(self.lam_cur*np.linalg.norm(self.S, axis=1))
 
         # Combinatorially find leaving index
-        def conv_size(i,dfS,xdim,k,new_df):
-            dfS2 = dfS.copy()
-
-            p_tmp = cp.Variable(xdim)
-            lam   = cp.Variable(k)
-            dfS2[i] = new_df
-
-            self.constraints = [np.ones(k) @ lam == 1]
-            self.constraints += [lam >= 0]
-
-            # Find lambda (warm start with previous iteration)
-            prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
-                              self.constraints + [lam @ dfS2 == p_tmp])
-            prob.solve(solver=cp.GUROBI)
-
-            return prob.value
-        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i,self.dfS,self.x_dim,self.k,oracle['df']) for i in range(self.k))
-        k_sub = np.argmin(jobs)
+        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
+        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
+        jobs_delta = [jobs[i][0] for i in range(self.k)]
+        k_sub = np.argmin(jobs_delta)
+        self.lam_cur = jobs[k_sub][1]
 
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx
@@ -157,8 +128,7 @@ class NewtonBundle(OptAlg):
 
     def stop_cond(self):
 
-        return ((not np.isnan(self.cur_delta))
-                and (self.cur_delta < self.delta_thres)
+        return ((self.cur_delta < self.delta_thres)
                 and (self.cur_diam < self.diam_thres))
 
     def opt_check(self, A, b):
@@ -173,3 +143,25 @@ class NewtonBundle(OptAlg):
             assert np.all([np.isclose(tmp[0], val) for val in tmp]) # Check active set
             assert np.isclose(np.linalg.norm(tmp2),0) # Check first order cond
             assert np.isclose(sum(mu),1) # Check duals
+
+# Combinatorially find leaving index
+def get_lam(dfS,sub_ind=None,new_df=None):
+    k = dfS.shape[0]
+    xdim = dfS.shape[1]
+    dfS2 = dfS.copy()
+
+    p_tmp = cp.Variable(xdim)
+    lam   = cp.Variable(k)
+
+    if sub_ind is not None:
+        dfS2[sub_ind] = new_df
+
+    constraints = [np.ones(k) @ lam == 1]
+    constraints += [lam >= 0]
+
+    # Find lambda (warm start with previous iteration)
+    prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
+                      constraints + [lam @ dfS2 == p_tmp])
+    prob.solve(solver=cp.GUROBI)
+
+    return np.sqrt(prob.value), lam.value
