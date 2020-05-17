@@ -137,28 +137,33 @@ class OptPlot:
     def plotValue(self, val='path_fx'):
         assert len(self.opt_algs) > 0
         assert val in ['path_fx','step_size']
-        
+
+        # Set up matplotlib
         fig = plt.figure(figsize = (10,10))
         ax  = fig.add_subplot(111)
         
         # Plot optimization path
         palette = itertools.cycle(sns.hls_palette(len(self.opt_algs), l=.3, s=.8))
-        markers = itertools.cycle(('*', '.', 'X', '^', 'D')) 
-        
-        max_iters = float('-inf')
+        markers = itertools.cycle(('*', '.', 'X', '^', 'D'))
 
+        # Count iterations and find max/min
+        max_iters = float('-inf')
         all_vals = np.array([])
         for alg in self.opt_algs:
-            
+
+            if val == 'step_size':
+                alg.step_size = np.diff(alg.path_x,axis=0)
+                alg.step_size = np.linalg.norm(alg.step_size,axis=1)
+                alg.step_size = np.insert(alg.step_size, 0, np.nan, axis=0)
+
             if alg.total_iter > max_iters:
                 max_iters = alg.total_iter
-
             all_vals = np.concatenate((all_vals,getattr(alg,val)))
 
         if val == 'path_fx':
             if min(all_vals) < 0:
                 y_label = 'Shifted Objective Value (log-scale)'
-                shift  =  -min(all_vals)
+                shift  =  -np.nanmin(all_vals)
             else:
                 y_label = 'Objective Value (log-scale)'
                 shift = 0
@@ -167,8 +172,8 @@ class OptPlot:
             shift = 0
 
         all_vals += shift
-        max_f = max(all_vals)
-        min_f = min(all_vals[all_vals != 0])
+        max_f = np.nanmax(all_vals)
+        min_f = np.nanmin(all_vals[all_vals != 0])
 
         for alg in self.opt_algs:
             y = getattr(alg,val) + shift

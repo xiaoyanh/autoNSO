@@ -39,9 +39,9 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
-optAlg0.optimize()
-alg_list += [optAlg0]
+# optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
+# optAlg0.optimize()
+# alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list)
-opt_plot.plotValue()
+opt_plot.plotValue(val='step_size')
