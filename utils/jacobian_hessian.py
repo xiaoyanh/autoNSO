@@ -3,6 +3,7 @@
 import torch
 
 def jacobian(y, x, create_graph=False):
+    torch.autograd.set_detect_anomaly(True)
     jac = []
     flat_y = y.reshape(-1)
     grad_y = torch.zeros_like(flat_y)
@@ -12,7 +13,6 @@ def jacobian(y, x, create_graph=False):
         jac.append(grad_x.reshape(x.shape))
         grad_y[i] = 0.
     return torch.stack(jac).reshape(y.shape + x.shape)
-
 
 def hessian(y, x, return_grad=True):
     gradient = jacobian(y, x, create_graph=True)

@@ -62,6 +62,7 @@ class Objective:
                     'df' : self.oracle_df(),
                     }
         elif self.oracle_output == 'hess+':
+            assert type(x) == torch.Tensor
             hess = hessian(self.fx,self.x)
             hess['f'] = self.oracle_f()
 
