@@ -29,10 +29,10 @@ def crit(met):
     return met.cur_iter == cut
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-# optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=1, linesearch=True,
-#                 ls_params={'c1':1e-4, 'c2':(1-1e-4), 'max_ls':1e5}, tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
-# optAlg1.optimize()
-# alg_list += [optAlg1]
+optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=1, linesearch=True,
+                ls_params={'c1':1e-4, 'c2':(1-1e-4), 'max_ls':1e5}, tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
+optAlg1.optimize()
+alg_list += [optAlg1]
 
 optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
 optAlg2.optimize()
