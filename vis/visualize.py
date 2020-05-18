@@ -177,7 +177,7 @@ class OptPlot:
 
         for alg in self.opt_algs:
             y = getattr(alg,val) + shift
-            y[y==0] = np.nan
+            y[y==0] = min_f # Just set all 0's to second smallest
             ax.plot(np.arange(alg.total_iter), y,
                     color=next(palette), marker=next(markers),
                     alpha=.4, label=alg.name)

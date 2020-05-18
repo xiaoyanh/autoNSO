@@ -86,26 +86,21 @@ class Nesterov(TorchAlg):
         self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.decay)
 
 
-class LBFGS(TorchAlg):
-    def __init__(self, objective, lr=1, decay=0.9, hist=100, linesearch=True, ls_params=None,
+class BFGS(TorchAlg):
+    def __init__(self, objective, lr=1, hist=float('inf'), linesearch='strong_wolfe', ls_params=None,
                  tolerance_change=1e-9, tolerance_grad=1e-7, **kwargs):
-        super(LBFGS, self).__init__(objective, **kwargs)
+        super(BFGS, self).__init__(objective, **kwargs)
 
-        if linesearch:
-            self.linesearch = 'strong_wolfe'
-        else:
-            self.linesearch = None
+        self.linesearch = linesearch
 
         self.lr = lr
-        self.decay = decay
         self.hist = hist
         self.name = 'BFGS'
-        self.name += (' (lr=' + str(self.lr) + ',decay=' + str(self.decay))
+        self.name += (' (lr=' + str(self.lr) + ')')
 
         # This is a modified BFGS from PyTorch
         self.optimizer = lbfgs.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,
                                      ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad)
-        self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.decay)
 
     def step(self):
         super(TorchAlg, self).step()
@@ -117,7 +112,6 @@ class LBFGS(TorchAlg):
             return value
 
         self.optimizer.step(closure)
-        self.scheduler.step()
 
         # Update current iterate value and update the bundle
         self.cur_x = self.p.data.numpy().copy()

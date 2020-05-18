@@ -5,7 +5,7 @@
 import importlib
 import numpy as np
 from IPython import embed
-from algs.torch_alg import LBFGS
+from algs.torch_alg import BFGS
 from vis.visualize import OptPlot
 from algs.prox_bundle import ProxBundle
 from algs.newton_bundle import NewtonBundle
@@ -29,8 +29,9 @@ def crit(met):
     return met.cur_iter == cut
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg1 = LBFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=1, linesearch=True,
-                ls_params={'c1':1e-4, 'c2':(1-1e-4), 'max_ls':1e5}, tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
+optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
+                ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
+                tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
 optAlg1.optimize()
 alg_list += [optAlg1]
 
@@ -39,9 +40,9 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-# optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
-# optAlg0.optimize()
-# alg_list += [optAlg0]
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
+optAlg0.optimize()
+alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list)
-opt_plot.plotValue(val='step_size')
+opt_plot.plotValue()

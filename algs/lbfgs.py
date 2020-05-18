@@ -33,6 +33,55 @@ def _cubic_interpolate(x1, f1, g1, x2, f2, g2, bounds=None):
     else:
         return (xmin_bound + xmax_bound) / 2.
 
+def _lewis_overton(obj_func,
+                  x,
+                  t,
+                  d,
+                  f,
+                  g,
+                  gtd,
+                  c1=1e-4,
+                  c2=0.9,
+                  tolerance_change=1e-9,
+                  max_ls=25):
+
+    # Adapted from _strong_wolfe
+    # Does inexact line-search from https://cs.nyu.edu/overton/papers/pdffiles/bfgs_inexactLS.pdf
+
+    d_norm = d.abs().max()
+    g = g.clone(memory_format=torch.contiguous_format)
+    # evaluate objective and gradient using initial step
+
+    # bracket an interval containing a point satisfying the Wolfe criteria
+    ls_func_evals = 0
+
+    alpha = 0.0
+    beta  = float('inf')
+
+    while ls_func_evals < max_ls:
+        f_new, g_new = obj_func(x, t, d)
+        ls_func_evals += 1
+        gtd_new = g_new.dot(d)
+
+        if f_new > (f + c1 * t * gtd): # If S(t) fails
+            beta = t
+        elif gtd_new > c2 * gtd: # If C(t) fails
+            alpha = t
+        else:
+            break
+
+        if beta < float('inf'):
+            t = (alpha + beta) / 2.0
+        else:
+            t = 2.0 * alpha
+
+        # line-search bracket is so small
+        if abs(beta - alpha) * d_norm < tolerance_change:
+            break
+
+    f_new, g_new = obj_func(x, t, d)
+    return f_new, g_new, t, ls_func_evals
+
 
 def _strong_wolfe(obj_func,
                   x,
@@ -264,6 +313,11 @@ class LBFGS(Optimizer):
         else:
             self.max_ls = 25
 
+        if (ls_params is not None) and 'max_ls' in ls_params.keys():
+            self.max_ls = ls_params['max_ls']
+        else:
+            self.max_ls = 25
+
 
     def _numel(self):
         if self._numel_cache is None:
@@ -440,15 +494,20 @@ class LBFGS(Optimizer):
             ls_func_evals = 0
             if line_search_fn is not None:
                 # perform line search, using user function
-                if line_search_fn != "strong_wolfe":
-                    raise RuntimeError("only 'strong_wolfe' is supported")
+                if line_search_fn not in ["strong_wolfe","lewis_overton"]:
+                    raise RuntimeError("only 'strong_wolfe' and 'lewis_overton' is supported")
                 else:
+                    if line_search_fn == 'strong_wolfe':
+                        ls_func = _strong_wolfe
+                    else:
+                        ls_func = _lewis_overton
+
                     x_init = self._clone_param()
 
                     def obj_func(x, t, d):
                         return self._directional_evaluate(closure, x, t, d)
 
-                    loss, flat_grad, t, ls_func_evals = _strong_wolfe(
+                    loss, flat_grad, t, ls_func_evals = ls_func(
                         obj_func, x_init, t, d, loss, flat_grad, gtd, c1=self.c1, c2=self.c2,
                         tolerance_change=self.tolerance_change, max_ls=self.max_ls)
                 self._add_grad(t, d)
