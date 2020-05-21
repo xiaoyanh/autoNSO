@@ -51,7 +51,8 @@ class ProxBundle(OptAlg):
 
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
-        thres = 1e-3 * max(self.cur_duals)
+        # thres = 1e-3 * max(self.cur_duals)
+        thres = 1e-10
         self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
         self.cur_tight = sum(self.cur_active)
 

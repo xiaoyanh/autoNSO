@@ -40,7 +40,7 @@ class OptPlot:
         
         self.axis_rot = axis_rot
         plt.style.use('seaborn-white')
-        self.resolution = 250
+        self.resolution = resolution
             
     def add_alg(self,opt_algs):
         
@@ -85,7 +85,7 @@ class OptPlot:
             x2_lim = float('-inf')
             
             for alg in self.opt_algs:
-                path_max = np.max(np.abs(alg.path_x),axis=0)
+                path_max = np.nanmax(np.abs(alg.path_x),axis=0)
                 if path_max[0] > x1_lim:
                     x1_lim = path_max[0]
                 if path_max[1] > x2_lim:
@@ -105,13 +105,15 @@ class OptPlot:
         x1_grid, x2_grid = np.meshgrid(x1, x2)
         
         def f(x1, x2):
-            val = self.obj_func(torch.tensor([x1,x2]))
+            val = self.obj_func(torch.tensor([x1,x2],dtype=torch.double))
             try:
                 return val.data.numpy()
             except:
                 return val
         vf = np.vectorize(f)
         fx_grid = vf(x1_grid, x2_grid)
+        if np.nanmin(fx_grid) < 0:
+            fx_grid -= np.nanmin(fx_grid)
 
         #Plot objective
         fig = plt.figure(figsize = (10,10))
@@ -121,18 +123,18 @@ class OptPlot:
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
         ax.view_init(self.axis_rot[0], self.axis_rot[1])
-        
+        ax.zaxis._set_scale('log')
+
         palette = itertools.cycle(sns.hls_palette(len(self.opt_algs), l=.3, s=.8))
         markers = itertools.cycle(('*', '.', 'X', '^', 'D')) 
         
         # Plot optimization path
         for alg in self.opt_algs:
-            alg.path_x[:,0]
             ax.plot(alg.path_x[:,0],alg.path_x[:,1], alg.path_fx,
                     color = next(palette), marker = next(markers), alpha = .6, label = alg.name)
         plt.legend()
-        plt.show()
-        
+        plt.show(block=False)
+
     # Plot for objective function of two inputs
     def plotValue(self, val='path_fx'):
         assert len(self.opt_algs) > 0

@@ -12,8 +12,8 @@ from algs.newton_bundle import NewtonBundle
 from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 
 # Run newton-bundle optimization algorithm
-n = 50
-k = 10
+# n = 50
+n = 2
 iters = 100
 
 objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e3; cut = 75; iters=100
@@ -29,20 +29,21 @@ def crit(met):
     return met.cur_iter == cut
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
-                ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
-                tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
-optAlg1.optimize()
-alg_list += [optAlg1]
+# optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
+#                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
+#                 tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
+# optAlg1.optimize()
+# alg_list += [optAlg1]
 
-# optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
-# optAlg2.optimize()
-# alg_list += [optAlg2]
-#
-# # # Run Newton-Bundle
-# optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
-# optAlg0.optimize()
-# alg_list += [optAlg0]
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
+optAlg2.optimize()
+alg_list += [optAlg2]
 
-opt_plot = OptPlot(opt_algs=alg_list)
+# # Run Newton-Bundle
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
+optAlg0.optimize()
+alg_list += [optAlg0]
+
+opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
+opt_plot.plotPath3D()
 opt_plot.plotValue()
