@@ -45,5 +45,7 @@ optAlg0.optimize()
 alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
-opt_plot.plotPath3D()
+
+if n == 2:
+    opt_plot.plotPath3D()
 opt_plot.plotValue()
