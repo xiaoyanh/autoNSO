@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 
 # Subgradient method
 class NewtonBundle(OptAlg):
-    def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, warm_start=None, **kwargs):
+    def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, warm_start=None, start_type='bundle', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -22,7 +22,11 @@ class NewtonBundle(OptAlg):
         self.diam_thres  = diam_thres
 
         # Prepare the bundle
-        if warm_start is not None:
+        if warm_start is None:
+            self.cur_x = self.x0
+            self.S = None
+            self.k = k  # bundle size
+        elif start_type is 'bundle':
             self.cur_x  = warm_start['x']
             self.S      = warm_start['bundle']
 
@@ -36,10 +40,13 @@ class NewtonBundle(OptAlg):
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
+        elif start_type is 'random':
+            self.cur_x = warm_start['x']
+            self.S     = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
         else:
-            self.cur_x = self.x0
-            self.S = None
-            self.k = k  # bundle size
+            raise Exception('Start type must me bundle or random')
+
+
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         self.name = 'NewtonBundle (k=' + str(self.k) + ')'
