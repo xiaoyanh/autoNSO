@@ -14,14 +14,15 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 # Run newton-bundle optimization algorithm
 n = 50
 # n = 2
-iters = 100
+iters = 300
 
-objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e3; cut = 75; iters=100
-# objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=1e2; cut=120; iters = 150
-# objective = partlysmooth(n=50,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=15; iters = 50
+# objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1; beta_sz=1e-5; cut = 75; iters=100
+objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e3; beta_sz=1e-5; cut = 75; iters=100
+# objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=1e2; cut=75; iters = 100
+# objective = partlysmooth(n=n,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=75; iters = 100
 
 x0 = np.random.randn(n)
-
+# x0 = np.ones(n)
 alg_list = []
 
 # Criteria for switching to newton-bundle
@@ -29,13 +30,13 @@ def crit(met):
     return met.cur_iter == cut
     # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
-optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
-                ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
-                tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
-optAlg1.optimize()
-alg_list += [optAlg1]
+# optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
+#                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
+#                 tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
+# optAlg1.optimize()
+# alg_list += [optAlg1]
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=1e-3, switch_crit=crit)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz, switch_crit=crit)
 optAlg2.optimize()
 alg_list += [optAlg2]
 

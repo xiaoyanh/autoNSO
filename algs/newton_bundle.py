@@ -25,6 +25,7 @@ class NewtonBundle(OptAlg):
         if warm_start is not None:
             self.cur_x  = warm_start['x']
             self.S      = warm_start['bundle']
+
             self.cur_iter = warm_start['iter']
             self.k = self.S.shape[0]
 
@@ -80,7 +81,10 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A,rcond=1e-12) @ b)[0:self.x_dim]
+        # self.cur_x = (np.linalg.pinv(A,rcond=1e-4) @ b)[0:self.x_dim]
+        # sig = np.linalg.norm(A,ord=2)
+        # self.cur_x = (np.linalg.inv(A.T @ A + sig*1e-2*np.eye(A.shape[0])*1e-3)@A.T@b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A, rcond=1e-10) @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)
@@ -153,7 +157,7 @@ def get_lam(dfS,sub_ind=None,new_df=None):
     if sub_ind is not None:
         dfS2[sub_ind] = new_df
 
-    constraints = [np.ones(k) @ lam == 1]
+    constraints = [cp.sum(lam) == 1.0]
     constraints += [lam >= 0]
 
     # Find lambda (warm start with previous iteration)
@@ -161,4 +165,4 @@ def get_lam(dfS,sub_ind=None,new_df=None):
                       constraints + [lam @ dfS2 == p_tmp])
     prob.solve(solver=cp.GUROBI)
 
-    return np.sqrt(prob.value), lam.value
+    return np.sqrt(prob.value), lam.value.copy()
