@@ -36,8 +36,8 @@ class NewtonBundle(OptAlg):
                 self.S      = warm_start['bundle']
                 self.k = self.S.shape[0]
             elif start_type == 'random':
-                self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
                 self.k = k
+                self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
             else:
                 raise Exception('Start type must me bundle or random')
 
