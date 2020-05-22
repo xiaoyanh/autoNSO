@@ -26,25 +26,25 @@ class NewtonBundle(OptAlg):
             self.cur_x = self.x0
             self.S = None
             self.k = k  # bundle size
-        elif start_type is 'bundle':
-            self.cur_x  = warm_start['x']
-            self.S      = warm_start['bundle']
+        else:
+            self.cur_x      = warm_start['x']
+            self.cur_iter   = warm_start['iter']
+            self.x0         = None
+            self.x_dim      = len(self.cur_x)
 
-            self.cur_iter = warm_start['iter']
-            self.k = self.S.shape[0]
+            if start_type == 'bundle':
+                self.S      = warm_start['bundle']
+                self.k = self.S.shape[0]
+            elif start_type == 'random':
+                self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
+                self.k = k
+            else:
+                raise Exception('Start type must me bundle or random')
 
-            self.x0 = None
-            self.x_dim = len(self.cur_x)
-
-            self.path_x  = np.zeros([self.cur_iter, self.x_dim]) * np.nan
+            self.path_x = np.zeros([self.cur_iter, self.x_dim]) * np.nan
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
-        elif start_type is 'random':
-            self.cur_x = warm_start['x']
-            self.S     = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
-        else:
-            raise Exception('Start type must me bundle or random')
 
 
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()

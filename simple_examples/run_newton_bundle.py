@@ -16,7 +16,6 @@ n = 50
 # n = 2
 iters = 300
 
-# objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1; beta_sz=1e-5; cut = 75; iters=100
 objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e3; beta_sz=1e-5; cut = 75; iters=100
 # objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=3; mu_sz=1e2; cut=75; iters = 100
 # objective = partlysmooth(n=n,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=75; iters = 100
@@ -41,7 +40,7 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle, start_type='random')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
