@@ -13,8 +13,14 @@ Simple2D = Objective(simple2D)
 def stronglyconvex(n=50, k=10, seed=0, **kwargs):
     torch.random.manual_seed(seed)
 
+    # Generate the g's, so that they sum with positive weights to 0
+    lam = torch.rand(k,dtype=torch.double)
+    lam /= sum(lam)
+    g  = torch.randn(k - 1, n, dtype=torch.double)
+    gk = -(lam[0:(k-1)] @ g)/lam[-1]
+    g  = torch.cat((g, gk[None, :]), 0)
+
     c = torch.randn(k,dtype=torch.double)
-    g = torch.randn(k,n,dtype=torch.double)
     tmp = torch.randn(k,n,n,dtype=torch.double)
     H = stack([tmp[i,:,:].T @ tmp[i,:,:] for i in range(k)])
 
@@ -34,8 +40,13 @@ def stronglyconvex(n=50, k=10, seed=0, **kwargs):
 def nonconvex(n=50, k=10, seed=0, **kwargs):
     torch.random.manual_seed(seed)
 
+    lam = torch.rand(k,dtype=torch.double)
+    lam /= sum(lam)
+    g  = torch.randn(k - 1, n, dtype=torch.double)
+    gk = -(lam[0:(k-1)] @ g)/lam[-1]
+    g  = torch.cat((g, gk[None, :]), 0)
+
     c = torch.randn(k,dtype=torch.double)
-    g = torch.randn(k,n,dtype=torch.double)
     tmp = torch.randn(k,n,n,dtype=torch.double)
     H = stack([tmp[i,:,:].T @ tmp[i,:,:] for i in range(k)])
 

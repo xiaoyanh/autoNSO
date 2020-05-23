@@ -16,7 +16,7 @@ n = 50
 # n = 2
 iters = 300
 
-objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e3; beta_sz=1e-5; cut = 75; iters=100
+objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); mu_sz=1e3; beta_sz=1e-5; iters=200
 # objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e2; beta_sz=1e-5; cut=125; iters = 150
 # objective = partlysmooth(n=n,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=75; iters = 100
 
@@ -26,8 +26,8 @@ alg_list = []
 
 # Criteria for switching to newton-bundle
 def crit(met):
-    return met.cur_iter == cut
-    # return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
+    # return met.cur_iter == cut
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
 #                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
@@ -35,12 +35,12 @@ def crit(met):
 # optAlg1.optimize()
 # alg_list += [optAlg1]
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz, switch_crit=crit, prune=True)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,prune=True, switch_crit=crit)
 optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=bund_sz , warm_start=optAlg2.saved_bundle, start_type='bundle')
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, start_type='bundle')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
