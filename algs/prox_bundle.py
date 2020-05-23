@@ -5,16 +5,18 @@ from IPython import embed
 from algs.optAlg import OptAlg
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, **kwargs):
+    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
-        self.constraints = []
+        self.constraints    = []
+        self.constraint_ind = []
         self.p = cp.Variable(self.x_dim)  # variable of optimization
         self.v = cp.Variable()  # value of cutting plane model
         self.mu = mu
         self.null_k = null_k
         self.name = 'ProxBundle'
         self.name += ' (mu=' + str(self.mu) + ',null_k=' + str(self.null_k) + ')'
+        self.prune = prune
 
         # Add one bundle point to initial point
         self.cur_x = self.x0
@@ -24,8 +26,10 @@ class ProxBundle(OptAlg):
         self.total_null         = 0
         self.ignore_null        = ignore_null
 
+
         # Some other useful info
         self.cur_tight = 0
+        self.cur_active = np.array([0])
         self.tight_x = []
         self.tight_y = []
 
@@ -52,15 +56,12 @@ class ProxBundle(OptAlg):
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
         thres = 1e-6 * max(self.cur_duals)
-        # thres = 0
-        # thres = 1e-3
-        self.cur_active = [(self.cur_duals[i] > thres) for i in range(len(self.constraints))]
+        self.cur_active = np.where([(self.cur_duals[i] > thres) for i in range(len(self.constraints))])[0]
         self.cur_tight = sum(self.cur_active)
 
         # Check tight set is actually tight
         # if self.cur_iter == 75:
         #     self.check_crit()
-
 
         # Update paths and bundle constraints
         self.update_params(self.v.value)
@@ -112,22 +113,32 @@ class ProxBundle(OptAlg):
         else:
             self.total_null += 1
 
-        self.cur_iter += 1 # Count null steps as interations
+        # Remove inactive indices
+        if self.prune:
+
+            # Remove inactive constraints
+            inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
+            [self.constraints.pop(i) for i in inactive]
+            [self.constraint_ind.pop(i) for i in inactive]
+
+            self.constraint_ind += [self.cur_iter]
 
         # Even if it is null step, add a constraint to cutting plane model
         self.constraints += [(cur_fy.copy() +
                               orcl_call['df'].copy() @ (self.p - self.cur_y.copy())) <= self.v]
 
+        self.cur_iter += 1 # Count null steps as interations
+
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
-        self.saved_bundle = {'bundle': self.path_y[np.array(self.cur_active)],
+
+        self.saved_bundle = {'bundle': self.path_y[self.constraint_ind,:],
                              'iter': self.cur_iter,
                              'x'   : self.cur_x.copy()}
 
     def check_crit(self):
-        act_ind = np.where(self.cur_active)[0]
         tmp = []
-        for i in act_ind:
+        for i in self.constraint_ind:
             orcl_call = self.objective.call_oracle(self.path_y[i])
             tmp += [orcl_call['f'] + orcl_call['df'] @ (self.cur_y - self.path_y[i])]
 

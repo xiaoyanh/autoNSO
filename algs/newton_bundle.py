@@ -37,7 +37,7 @@ class NewtonBundle(OptAlg):
                 self.k = self.S.shape[0]
             elif start_type == 'random':
                 self.k = k
-                self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-2
+                self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * 1e-1
             else:
                 raise Exception('Start type must me bundle or random')
 
@@ -87,10 +87,11 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        # self.cur_x = (np.linalg.pinv(A,rcond=1e-4) @ b)[0:self.x_dim]
-        # sig = np.linalg.norm(A,ord=2)
-        # self.cur_x = (np.linalg.inv(A.T @ A + sig*1e-2*np.eye(A.shape[0])*1e-3)@A.T@b)[0:self.x_dim]
-        self.cur_x = (np.linalg.pinv(A, rcond=1e-10) @ b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A, rcond=1e-6) @ b)[0:self.x_dim]
+        # u, d, vh = np.linalg.svd(A)
+        # d[0:self.x_dim] = d[0:self.x_dim]**(-1)
+        # d[self.x_dim:]  = 0
+        # self.cur_x = (u @ np.diag(d) @ vh @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)
