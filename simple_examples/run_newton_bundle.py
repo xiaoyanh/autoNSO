@@ -14,20 +14,19 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 # Run newton-bundle optimization algorithm
 n = 50
 # n = 2
-iters = 300
 
-objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); mu_sz=1e3; beta_sz=1e-5; iters=200
+objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); mu_sz=1e3; beta_sz=1e-5; iters=300
 # objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e2; beta_sz=1e-5; cut=125; iters = 150
 # objective = partlysmooth(n=n,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=75; iters = 100
 
-x0 = np.random.randn(n)
-# x0 = np.ones(n)
+# x0 = np.random.randn(n)
+x0 = np.ones(n)
 alg_list = []
 
 # Criteria for switching to newton-bundle
 def crit(met):
     # return met.cur_iter == cut
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-8)
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
 #                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},

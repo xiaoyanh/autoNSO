@@ -87,7 +87,7 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A, rcond=1e-10) @ b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A, rcond=self.cur_fx/100) @ b)[0:self.x_dim]
         # u, d, vh = np.linalg.svd(A)
         # d[0:self.x_dim] = d[0:self.x_dim]**(-1)
         # d[self.x_dim:]  = 0

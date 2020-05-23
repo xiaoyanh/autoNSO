@@ -115,11 +115,11 @@ class ProxBundle(OptAlg):
 
         # Remove inactive indices
         if self.prune:
-
-            # Remove inactive constraints
-            inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
-            [self.constraints.pop(i) for i in inactive]
-            [self.constraint_ind.pop(i) for i in inactive]
+            if serious:
+                # Remove inactive constraints
+                inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
+                [self.constraints.pop(i) for i in inactive]
+                [self.constraint_ind.pop(i) for i in inactive]
 
             self.constraint_ind += [self.cur_iter]
 
