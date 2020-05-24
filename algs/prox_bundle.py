@@ -8,6 +8,8 @@ class ProxBundle(OptAlg):
     def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
+        self.objective.oracle_output = 'both'
+
         self.constraints    = []
         self.constraint_ind = []
         self.p = cp.Variable(self.x_dim)  # variable of optimization
@@ -55,6 +57,7 @@ class ProxBundle(OptAlg):
 
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
+
         thres = 1e-6 * max(self.cur_duals)
         self.cur_active = np.where([(self.cur_duals[i] > thres) for i in range(len(self.constraints))])[0]
         self.cur_tight = sum(self.cur_active)

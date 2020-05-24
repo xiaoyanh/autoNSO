@@ -48,7 +48,7 @@ class NewtonBundle(OptAlg):
 
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
-        self.name = 'NewtonBundle (k=' + str(self.k) + ')'
+        self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])
@@ -66,7 +66,18 @@ class NewtonBundle(OptAlg):
             self.dfS[i,:]  = oracle['df']
             self.d2fS[i,:,:] = oracle['d2f']
 
+        # Add extra step where we reduce rank of S
+        _ , self.lam_cur = get_lam(self.dfS)
+
+        active = np.where(self.lam_cur > 1e-3*max(self.lam_cur))[0]
+        self.k     = len(active)
+        self.S     = self.S[active, :]
+        self.fS    = self.fS[active]
+        self.dfS   = self.dfS[active,:]
+        self.d2fS  = self.d2fS[active,:]
+
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
+
         self.update_params()
 
     def step(self):
@@ -87,7 +98,7 @@ class NewtonBundle(OptAlg):
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
-        self.cur_x = (np.linalg.pinv(A, rcond=self.cur_fx/100) @ b)[0:self.x_dim]
+        self.cur_x = (np.linalg.pinv(A, rcond=1e-12) @ b)[0:self.x_dim]
         # u, d, vh = np.linalg.svd(A)
         # d[0:self.x_dim] = d[0:self.x_dim]**(-1)
         # d[self.x_dim:]  = 0

@@ -37,10 +37,8 @@ class Objective:
             raise Exception('Need to enable gradients on optimization variable.')
         
         # Zero the gradient if x has one
-        try:
+        if x.requires_grad and (x.grad is not None):
             x.grad.zero_grad()
-        except:
-            pass
         
         self.x = x
         self.fx = self.obj_func(self.x)

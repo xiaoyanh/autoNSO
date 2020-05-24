@@ -136,7 +136,7 @@ class OptPlot:
         plt.show(block=False)
 
     # Plot for objective function of two inputs
-    def plotValue(self, val='path_fx'):
+    def plotValue(self, val='path_fx', title=None):
         assert len(self.opt_algs) > 0
         assert val in ['path_fx','step_size']
 
@@ -188,6 +188,9 @@ class OptPlot:
         plt.xlabel('Iteration')
         plt.ylabel(y_label)
         plt.xticks(np.round(np.linspace(0,max_iters,10)))
+
+        if title is not None:
+            plt.title(title)
         
         plt.ylim((min_f,max_f))
         np.set_printoptions(precision=2)

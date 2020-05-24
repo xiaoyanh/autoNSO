@@ -13,11 +13,22 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 
 # Run newton-bundle optimization algorithm
 n = 50
+k = 10
+obj_type = 'Partly Smooth'
+m = 25
+# k = 3
 # n = 2
 
-objective = stronglyconvex(n=n,k=10,oracle_output='hess+'); mu_sz=1e3; beta_sz=1e-5; iters=300
-# objective = nonconvex(n=n,k=10,oracle_output='hess+'); bund_sz=10; mu_sz=1e2; beta_sz=1e-5; cut=125; iters = 150
-# objective = partlysmooth(n=n,m=25,oracle_output='hess+'); bund_sz=13; mu_sz=1e1; cut=75; iters = 100
+
+if obj_type == 'Strongly Convex':
+    titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
+    objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
+elif obj_type == 'Non-Convex':
+    titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
+    objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
+elif obj_type == 'Partly Smooth':
+    titl = obj_type + 'eig_max sum of {}, {}x{} matrices'.format(n, m, m)
+    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1; beta_sz=1e-5; cut=250; iters = 300
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
@@ -25,8 +36,8 @@ alg_list = []
 
 # Criteria for switching to newton-bundle
 def crit(met):
-    # return met.cur_iter == cut
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-8)
+    return met.cur_iter == cut
+    # return (met.cur_fx is not None) and (met.cur_fx < 1e-3)
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
 #                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
@@ -47,4 +58,4 @@ opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
 
 if n == 2:
     opt_plot.plotPath3D()
-opt_plot.plotValue()
+opt_plot.plotValue(title=titl)
