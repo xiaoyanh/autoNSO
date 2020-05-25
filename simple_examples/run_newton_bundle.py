@@ -19,16 +19,18 @@ m = 25
 # k = 3
 # n = 2
 
-
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
+    rescaled = False
 elif obj_type == 'Non-Convex':
     titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
+    rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + 'eig_max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1; beta_sz=1e-5; cut=250; iters = 300
+    rescaled  = True
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
@@ -58,4 +60,4 @@ opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
 
 if n == 2:
     opt_plot.plotPath3D()
-opt_plot.plotValue(title=titl)
+opt_plot.plotValue(title=titl, rescaled=rescaled)

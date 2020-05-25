@@ -136,7 +136,7 @@ class OptPlot:
         plt.show(block=False)
 
     # Plot for objective function of two inputs
-    def plotValue(self, val='path_fx', title=None):
+    def plotValue(self, val='path_fx', title=None, rescaled=False):
         assert len(self.opt_algs) > 0
         assert val in ['path_fx','step_size']
 
@@ -163,7 +163,7 @@ class OptPlot:
             all_vals = np.concatenate((all_vals,getattr(alg,val)))
 
         if val == 'path_fx':
-            if min(all_vals) < 0:
+            if (min(all_vals) < 0) or rescaled:
                 y_label = 'Shifted Objective Value (log-scale)'
                 shift  =  -np.nanmin(all_vals)
             else:
