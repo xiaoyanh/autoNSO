@@ -42,7 +42,7 @@ class TorchAlg(OptAlg):
 
         super(TorchAlg,self).update_params()
 
-        old_fx = self.cur_fx.copy()
+        old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
         self.cur_fx = self.objective.call_oracle(self.cur_x)['f']
         self.fx_step = old_fx - self.cur_fx
 

@@ -15,6 +15,7 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 n = 50
 k = 10
 obj_type = 'Partly Smooth'
+# obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -29,7 +30,7 @@ elif obj_type == 'Non-Convex':
     rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + 'eig_max sum of {}, {}x{} matrices'.format(n, m, m)
-    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1; beta_sz=1e-5; cut=250; iters = 300
+    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 250
     rescaled  = True
 
 # x0 = np.random.randn(n)
@@ -38,8 +39,9 @@ alg_list = []
 
 # Criteria for switching to newton-bundle
 def crit(met):
-    return met.cur_iter == cut
-    # return (met.cur_fx is not None) and (met.cur_fx < 1e-3)
+    # return met.fx_step == cut
+    return (met.fx_step > 0) and (abs(met.fx_step) < 1e-6)
+    # return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
 #                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
@@ -52,7 +54,7 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, start_type='bundle')
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=50, warm_start=optAlg2.saved_bundle, start_type='random')
 optAlg0.optimize()
 alg_list += [optAlg0]
 

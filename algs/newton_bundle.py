@@ -68,14 +68,14 @@ class NewtonBundle(OptAlg):
             self.d2fS[i,:,:] = oracle['d2f']
 
         # Add extra step where we reduce rank of S
-        _ , self.lam_cur = get_lam(self.dfS)
-
-        active = np.where(self.lam_cur > 1e-3*max(self.lam_cur))[0]
-        self.k     = len(active)
-        self.S     = self.S[active, :]
-        self.fS    = self.fS[active]
-        self.dfS   = self.dfS[active,:]
-        self.d2fS  = self.d2fS[active,:]
+        if warm_start and start_type=='bundle':
+            _ , self.lam_cur = get_lam(self.dfS)
+            active = np.where(self.lam_cur > 1e-3*max(self.lam_cur))[0]
+            self.k     = len(active)
+            self.S     = self.S[active, :]
+            self.fS    = self.fS[active]
+            self.dfS   = self.dfS[active,:]
+            self.d2fS  = self.d2fS[active,:]
 
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
 
@@ -100,17 +100,13 @@ class NewtonBundle(OptAlg):
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
 
         self.cur_x = (np.linalg.pinv(A, rcond=1e-12) @ b)[0:self.x_dim]
-        # u, d, vh = np.linalg.svd(A)
-        # d[0:self.x_dim] = d[0:self.x_dim]**(-1)
-        # d[self.x_dim:]  = 0
-        # self.cur_x = (u @ np.diag(d) @ vh @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
-        old_fx       = self.cur_fx.copy()
+        old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
         self.cur_fx  = oracle['f']
         self.fx_step = (old_fx - self.cur_fx)
 

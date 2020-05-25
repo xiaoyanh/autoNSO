@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+
 from IPython import embed
+from numpy import format_float_scientific as ffs
 
 class OptAlg:
     def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None):
@@ -57,7 +59,7 @@ class OptAlg:
     
     def step(self):
         if self.verbose:
-            print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx)) + ', step: ' + str(self.fx_step)
+            print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx) + ', step: ' + str(ffs(self.fx_step,4)))
     
     def stop_cond(self):
         return False

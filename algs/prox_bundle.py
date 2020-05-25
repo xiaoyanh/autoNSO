@@ -85,9 +85,8 @@ class ProxBundle(OptAlg):
         if not self.ignore_null:
             self.path_x = self.path_y
 
-            old_fx      = self.cur_fx.copy()
+            old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
             self.cur_fx = self.objective.obj_func(self.cur_x).data.numpy()
-
             self.fx_step = (old_fx - self.cur_fx)
 
             if self.path_fx is not None:
