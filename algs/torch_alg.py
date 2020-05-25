@@ -42,7 +42,9 @@ class TorchAlg(OptAlg):
 
         super(TorchAlg,self).update_params()
 
+        old_fx = self.cur_fx.copy()
         self.cur_fx = self.objective.call_oracle(self.cur_x)['f']
+        self.fx_step = old_fx - self.cur_fx
 
         if self.path_x is not None:
             self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))

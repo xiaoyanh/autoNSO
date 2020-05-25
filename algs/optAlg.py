@@ -25,6 +25,7 @@ class OptAlg:
         self.cur_fx    = None
         self.path_x      = None
         self.path_fx     = None
+        self.fx_step     = float('inf')
         
         self.verbose = verbose
         
@@ -56,7 +57,7 @@ class OptAlg:
     
     def step(self):
         if self.verbose:
-            print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx))
+            print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx)) + ', step: ' + str(self.fx_step)
     
     def stop_cond(self):
         return False

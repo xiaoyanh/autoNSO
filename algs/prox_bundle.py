@@ -28,7 +28,6 @@ class ProxBundle(OptAlg):
         self.total_null         = 0
         self.ignore_null        = ignore_null
 
-
         # Some other useful info
         self.cur_tight = 0
         self.cur_active = np.array([0])
@@ -86,7 +85,11 @@ class ProxBundle(OptAlg):
         if not self.ignore_null:
             self.path_x = self.path_y
 
+            old_fx      = self.cur_fx.copy()
             self.cur_fx = self.objective.obj_func(self.cur_x).data.numpy()
+
+            self.fx_step = (old_fx - self.cur_fx)
+
             if self.path_fx is not None:
                 self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
             else:

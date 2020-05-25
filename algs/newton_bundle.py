@@ -46,6 +46,7 @@ class NewtonBundle(OptAlg):
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
 
+
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
@@ -109,7 +110,9 @@ class NewtonBundle(OptAlg):
 
         # Get current gradient and hessian
         oracle = self.objective.call_oracle(self.cur_x)
-        self.cur_fx = oracle['f']
+        old_fx       = self.cur_fx.copy()
+        self.cur_fx  = oracle['f']
+        self.fx_step = (old_fx - self.cur_fx)
 
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
