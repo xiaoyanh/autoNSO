@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 
 # Subgradient method
 class NewtonBundle(OptAlg):
-    def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, warm_start=None, start_type='bundle', **kwargs):
+    def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -20,6 +20,7 @@ class NewtonBundle(OptAlg):
         # Add start with initial point
         self.delta_thres = delta_thres
         self.diam_thres  = diam_thres
+        self.proj_hess   = proj_hess
 
         # Prepare the bundle
         if warm_start is None:
@@ -49,8 +50,6 @@ class NewtonBundle(OptAlg):
 
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
-        self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
-
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])
             self.S[0,:] = self.x0
@@ -69,8 +68,12 @@ class NewtonBundle(OptAlg):
 
         # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle':
-            _ , self.lam_cur = get_lam(self.dfS)
-            active = np.where(self.lam_cur > 1e-3*max(self.lam_cur))[0]
+            sig = np.linalg.svd(self.dfS,compute_uv=False)
+            rank = sum(sig > max(sig)*1e-2)
+
+            _, tmp_lam = get_lam(self.dfS)
+            active  = tmp_lam.argsort()[-rank:]
+            # active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
             self.k     = len(active)
             self.S     = self.S[active, :]
             self.fS    = self.fS[active]
@@ -79,14 +82,25 @@ class NewtonBundle(OptAlg):
 
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
 
+        self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
+
         self.update_params()
 
     def step(self):
 
         super(NewtonBundle, self).step()
 
+        q, _ = np.linalg.qr(self.dfS.T,mode='complete')
+        U = q[:, -(self.x_dim - self.k):]
+
+        if self.proj_hess: # Project hessian
+            P = U @ U.T
+            hess = np.stack([P.T @ self.d2fS[i,:,:] @ P for i in range(self.k)])
+        else:
+            hess = self.d2fS
+
         A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
-        top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
+        top_left = np.einsum('s,sij->ij',self.lam_cur,hess)
 
         A[0:self.x_dim,0:self.x_dim]=top_left
         A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
@@ -95,10 +109,9 @@ class NewtonBundle(OptAlg):
         A[(self.x_dim+1):,-1]                          = -1
 
         b =  np.zeros(self.x_dim+1+self.k)
-        b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,self.d2fS,self.S)
+        b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
         b[self.x_dim]   = 1
         b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
-
         self.cur_x = (np.linalg.pinv(A, rcond=1e-12) @ b)[0:self.x_dim]
 
         # optimality check
