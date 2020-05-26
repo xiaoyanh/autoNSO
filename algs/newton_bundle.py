@@ -72,7 +72,8 @@ class NewtonBundle(OptAlg):
             rank = sum(sig > max(sig)*1e-2)
 
             _, tmp_lam = get_lam(self.dfS)
-            active  = tmp_lam.argsort()[-rank:]
+            # tmp_lam *= np.linalg.norm(self.dfS,axis=1)
+            active  = tmp_lam.argsort()[-int(rank):]
             # active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
             self.k     = len(active)
             self.S     = self.S[active, :]
@@ -89,11 +90,11 @@ class NewtonBundle(OptAlg):
     def step(self):
 
         super(NewtonBundle, self).step()
-
-        q, _ = np.linalg.qr(self.dfS.T,mode='complete')
-        U = q[:, -(self.x_dim - self.k):]
-
         if self.proj_hess: # Project hessian
+            u, d, vh = np.linalg.svd(self.dfS)
+            null_dim = max((self.x_dim - self.k), 0) + sum(d < 1e-2 * max(d))
+            U = vh[-null_dim:, :].T
+
             P = U @ U.T
             hess = np.stack([P.T @ self.d2fS[i,:,:] @ P for i in range(self.k)])
         else:
@@ -123,12 +124,13 @@ class NewtonBundle(OptAlg):
         self.cur_fx  = oracle['f']
         self.fx_step = (old_fx - self.cur_fx)
 
+        print('Choosing index', flush=True)
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
         jobs_delta = [jobs[i][0] for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
-
+        print('Index chosen', flush=True)
         self.lam_cur = jobs[k_sub][1]
 
         self.S[k_sub, :] = self.cur_x
