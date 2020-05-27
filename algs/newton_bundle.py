@@ -66,15 +66,23 @@ class NewtonBundle(OptAlg):
             self.dfS[i,:]  = oracle['df']
             self.d2fS[i,:,:] = oracle['d2f']
 
-        # Add extra step where we reduce rank of S
+        # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle':
             sig = np.linalg.svd(self.dfS,compute_uv=False)
-            rank = sum(sig > max(sig)*1e-2)
+            rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
 
-            _, tmp_lam = get_lam(self.dfS)
+            # active = get_active(self.dfS, rank=rank)
+            active = np.argsort(warm_start['duals'])[-rank:]
+
+            # _, tmp_lam = get_lam(self.dfS)
             # tmp_lam *= np.linalg.norm(self.dfS,axis=1)
-            active  = tmp_lam.argsort()[-int(rank):]
+            # active  = tmp_lam.argsort()[-int(rank):]
             # active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
+
+            # print('Solving MIP for rank {} subset'.format(rank), flush=True)
+            # _, _, active = get_lam_MIP(self.dfS,rank=rank)
+            # print('MIP Solved', flush=True)
+
             self.k     = len(active)
             self.S     = self.S[active, :]
             self.fS    = self.fS[active]
@@ -124,13 +132,11 @@ class NewtonBundle(OptAlg):
         self.cur_fx  = oracle['f']
         self.fx_step = (old_fx - self.cur_fx)
 
-        print('Choosing index', flush=True)
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
         jobs_delta = [jobs[i][0] for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
-        print('Index chosen', flush=True)
         self.lam_cur = jobs[k_sub][1]
 
         self.S[k_sub, :] = self.cur_x
@@ -209,6 +215,9 @@ def get_lam_MIP(dfS, new_df=None,rank=None):
     else:
         dfS2 = dfS.copy()
 
+    if rank >= dfS2.shape[0]:
+        rank = None
+
     k = dfS2.shape[0]
     xdim = dfS2.shape[1]
 
@@ -220,13 +229,41 @@ def get_lam_MIP(dfS, new_df=None,rank=None):
 
     if (rank is not None) or (new_df is not None):
 
-        non_zero = cp.variable(k)
+        non_zero = cp.Variable(k, integer=True)
+        constraints += [non_zero <= 1]
         constraints += [lam <= non_zero]
         constraints += [cp.sum(non_zero) == rank]
 
     # Find lambda (warm start with previous iteration)
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
                       constraints + [lam @ dfS2 == p_tmp])
-    prob.solve(solver=cp.GUROBI)
+    prob.solve(solver=cp.GUROBI, verbose=True)
 
-    return np.sqrt(prob.value), lam.value.copy()
+    if (rank is not None) or (new_df is not None):
+        keep_inds = np.where(non_zero.value > 0)
+        return np.sqrt(prob.value), lam.value.copy(), keep_inds[0]
+    else:
+        return np.sqrt(prob.value), lam.value.copy()
+
+# Combinatorially find leaving index
+def get_active(dfS, rank=None):
+
+    dfS2 = dfS.copy()
+    k, x_dim = dfS2.shape
+
+    if rank >= k:
+        return np.arange(dfS.shape[0])
+
+    non_zero = cp.Variable(k, integer=True)
+    M        = cp.Variable((k,k), diag=True)
+
+    constraints = [non_zero <= 1]
+    constraints += [0 <= non_zero]
+    constraints += [cp.sum(non_zero) == rank]
+    constraints += [M == cp.diag(non_zero)]
+
+    # Find rows
+    prob = cp.Problem(cp.Maximize(cp.trace(dfS2.T @ M @ dfS2)),constraints)
+    prob.solve(solver=cp.GUROBI, verbose=True)
+
+    return np.where(non_zero.value > 0)[0]
