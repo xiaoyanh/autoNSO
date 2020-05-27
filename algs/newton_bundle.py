@@ -198,3 +198,35 @@ def get_lam(dfS,sub_ind=None,new_df=None):
     prob.solve(solver=cp.GUROBI)
 
     return np.sqrt(prob.value), lam.value.copy()
+
+# Combinatorially find leaving index
+def get_lam_MIP(dfS, new_df=None,rank=None):
+
+    if new_df is not None:
+        if rank is None:
+            rank = dfS.shape[0]
+        dfS2 = np.stack((dfS,new_df))
+    else:
+        dfS2 = dfS.copy()
+
+    k = dfS2.shape[0]
+    xdim = dfS2.shape[1]
+
+    p_tmp = cp.Variable(xdim)
+    lam   = cp.Variable(k)
+
+    constraints = [cp.sum(lam) == 1.0]
+    constraints += [lam >= 0]
+
+    if (rank is not None) or (new_df is not None):
+
+        non_zero = cp.variable(k)
+        constraints += [lam <= non_zero]
+        constraints += [cp.sum(non_zero) == rank]
+
+    # Find lambda (warm start with previous iteration)
+    prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
+                      constraints + [lam @ dfS2 == p_tmp])
+    prob.solve(solver=cp.GUROBI)
+
+    return np.sqrt(prob.value), lam.value.copy()
