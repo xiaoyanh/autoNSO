@@ -14,8 +14,8 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-# obj_type = 'Partly Smooth'
-obj_type = 'Strongly Convex'
+obj_type = 'Partly Smooth'
+# obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -40,8 +40,8 @@ alg_list = []
 # Criteria for switching to newton-bundle
 def crit(met):
     # return met.fx_step == cut
-    # return (met.fx_step > 0) and (abs(met.fx_step) < 5e-8)
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+    return (met.fx_step > 0) and (abs(met.fx_step) < 5e-8)
+    # return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
 #                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},

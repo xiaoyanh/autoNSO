@@ -82,12 +82,12 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle':
-            # sig = np.linalg.svd(self.dfS,compute_uv=False)
-            # rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
-            # active = np.argsort(warm_start['duals'])[-rank:]
+            sig = np.linalg.svd(self.dfS,compute_uv=False)
+            rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
+            active = np.argsort(warm_start['duals'])[-rank:]
 
-            _, tmp_lam = get_lam(self.dfS)
-            active = np.where(tmp_lam > 1e-3 * max(tmp_lam))[0]
+            # _, tmp_lam = get_lam(self.dfS)
+            # active = np.where(tmp_lam > 1e-3 * max(tmp_lam))[0]
 
             self.k     = len(active)
             self.S     = self.S[active, :]
@@ -123,7 +123,7 @@ class NewtonBundle(OptAlg):
             b  = b1 - b2
 
             xu = np.linalg.inv(A)@b
-            self.x_cur = U@xu + p
+            self.cur_x = U@xu + p
         else:
             hess = self.d2fS
 
