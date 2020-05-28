@@ -16,6 +16,10 @@ m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
             'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
             'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
             }
+g_params = {'BarConvTol': 1e-10,
+            'BarQCPConvTol': 1e-10,
+            'FeasibilityTol': 1e-9,
+            'OptimalityTol': 1e-9,}
 
 # Subgradient method
 class NewtonBundle(OptAlg):
@@ -80,18 +84,10 @@ class NewtonBundle(OptAlg):
         if warm_start and start_type=='bundle':
             # sig = np.linalg.svd(self.dfS,compute_uv=False)
             # rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
-
-            # active = get_active(self.dfS, rank=rank)
             # active = np.argsort(warm_start['duals'])[-rank:]
 
             _, tmp_lam = get_lam(self.dfS)
-            # tmp_lam *= np.linalg.norm(self.dfS,axis=1)
-            # active  = tmp_lam.argsort()[-int(rank):]
-            active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
-
-            # print('Solving MIP for rank {} subset'.format(rank), flush=True)
-            # _, _, active = get_lam_MIP(self.dfS,rank=rank)
-            # print('MIP Solved', flush=True)
+            active = np.where(tmp_lam > 1e-3 * max(tmp_lam))[0]
 
             self.k     = len(active)
             self.S     = self.S[active, :]
@@ -99,9 +95,7 @@ class NewtonBundle(OptAlg):
             self.dfS   = self.dfS[active,:]
             self.d2fS  = self.d2fS[active,:]
 
-        if self.proj_hess: # difference matrix for projection
-            self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray()
-
+        self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray() # adjacent subtraction
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
 
         self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
@@ -112,31 +106,40 @@ class NewtonBundle(OptAlg):
 
         super(NewtonBundle, self).step()
 
-        G = self.D @ self.dfS # See Lewis-Wylie (2019)
+        G  = self.D @ self.dfS # See Lewis-Wylie (2019)
+        b_l = self.D@(np.einsum('ij,ij->i',self.dfS,self.S) - self.fS)
 
-        if self.proj_hess: # Project hessian
-            u, d, vh = np.linalg.svd(G)
-            null_dim = max((self.x_dim - self.k), 0) + sum(d < 1e-3 * max(d))
-            U = vh[-null_dim:, :].T
+        if self.proj_hess: # Project hessian. See Lewis-Wylie 2019
+            Q, R    = np.linalg.qr(G.T, mode='complete')
+            V = Q[:,:(self.k-1)]
+            U = Q[:,(self.k-1):]
 
-            P = U @ U.T
-            hess = np.stack([P.T @ self.d2fS[i,:,:] @ P for i in range(self.k)])
+            p = V @ np.linalg.inv(G@V) @ b_l
+            UhU = np.stack([U.T @ self.d2fS[i,:,:] @ U for i in range(self.k)])
+
+            A = np.einsum('s,sij->ij',self.lam_cur,UhU)
+            b1 = np.einsum('s,sij,jk,ks->i',self.lam_cur,UhU,U.T,(self.S - p).T)
+            b2 = np.einsum('s,ij,js->i',self.lam_cur,U.T,self.dfS.T)
+            b  = b1 - b2
+
+            xu = np.linalg.inv(A)@b
+            self.x_cur = U@xu + p
         else:
             hess = self.d2fS
 
-        A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
-        top_left = np.einsum('s,sij->ij',self.lam_cur,hess)
+            A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
+            top_left = np.einsum('s,sij->ij',self.lam_cur,hess)
 
-        A[0:self.x_dim,0:self.x_dim]=top_left
-        A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
-        A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
-        A[(self.x_dim+1):, 0:self.x_dim]               = G
+            A[0:self.x_dim,0:self.x_dim]=top_left
+            A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
+            A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
+            A[(self.x_dim+1):, 0:self.x_dim]               = G
 
-        b =  np.zeros(self.x_dim+self.k)
-        b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
-        b[self.x_dim]   = 1
-        b[self.x_dim+1:] = self.D@(np.einsum('ij,ij->i',self.dfS,self.S) - self.fS)
-        self.cur_x = (np.linalg.pinv(A, rcond=1e-12) @ b)[0:self.x_dim]
+            b =  np.zeros(self.x_dim+self.k)
+            b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
+            b[self.x_dim]   = 1
+            b[self.x_dim+1:] = b_l
+            self.cur_x = (np.linalg.pinv(A, rcond=1e-14) @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)
@@ -202,23 +205,23 @@ class NewtonBundle(OptAlg):
 def get_lam(dfS,sub_ind=None,new_df=None):
     k = dfS.shape[0]
     xdim = dfS.shape[1]
-    dfS2 = dfS.copy()
+    dfS_ = dfS.copy()
 
     p_tmp = cp.Variable(xdim)
     lam   = cp.Variable(k)
 
     if sub_ind is not None:
-        dfS2[sub_ind] = new_df
+        dfS_[sub_ind] = new_df
 
     constraints = [cp.sum(lam) == 1.0]
     constraints += [lam >= 0]
+    constraints += [lam @ dfS_ == p_tmp]
 
     # Find lambda (warm start with previous iteration)
-    prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
-                      constraints + [lam @ dfS2 == p_tmp])
+    prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))), constraints)
 
     prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
-    # prob.solve(solver=cp.GUROBI)
+    # prob.solve(warm_start=True,solver=cp.GUROBI,**g_params)
 
     return np.sqrt(prob.value), lam.value.copy()
 

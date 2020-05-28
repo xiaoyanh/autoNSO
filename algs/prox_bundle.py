@@ -13,6 +13,13 @@ m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
             'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
             }
 
+
+# GUROBI
+g_params = {'BarConvTol': 1e-10,
+            'BarQCPConvTol': 1e-10,
+            'FeasibilityTol': 1e-9,
+            'OptimalityTol': 1e-9,}
+
 class ProxBundle(OptAlg):
     def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
@@ -57,10 +64,6 @@ class ProxBundle(OptAlg):
         prob.solve(warm_start=True, solver=cp.MOSEK,mosek_params=m_params)
 
         # GUROBI
-        # g_params = {'BarConvTol': 1e-10,
-        #             'BarQCPConvTol': 1e-10,
-        #             'FeasibilityTol': 1e-9,
-        #             'OptimalityTol': 1e-9,}
         # prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
 
         # Update current iterate value and update the bundle
