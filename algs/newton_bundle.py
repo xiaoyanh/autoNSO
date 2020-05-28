@@ -5,7 +5,17 @@ import multiprocessing
 
 from IPython import embed
 from algs.optAlg import OptAlg
+from scipy.sparse import diags
 from joblib import Parallel, delayed
+
+tol = 1e-15
+m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_NEAR_REL': 10,
+            'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
+            }
 
 # Subgradient method
 class NewtonBundle(OptAlg):
@@ -68,16 +78,16 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle':
-            sig = np.linalg.svd(self.dfS,compute_uv=False)
-            rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
+            # sig = np.linalg.svd(self.dfS,compute_uv=False)
+            # rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
 
             # active = get_active(self.dfS, rank=rank)
-            active = np.argsort(warm_start['duals'])[-rank:]
+            # active = np.argsort(warm_start['duals'])[-rank:]
 
-            # _, tmp_lam = get_lam(self.dfS)
+            _, tmp_lam = get_lam(self.dfS)
             # tmp_lam *= np.linalg.norm(self.dfS,axis=1)
             # active  = tmp_lam.argsort()[-int(rank):]
-            # active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
+            active = np.where(tmp_lam > 1e-3*max(tmp_lam))[0]
 
             # print('Solving MIP for rank {} subset'.format(rank), flush=True)
             # _, _, active = get_lam_MIP(self.dfS,rank=rank)
@@ -89,6 +99,9 @@ class NewtonBundle(OptAlg):
             self.dfS   = self.dfS[active,:]
             self.d2fS  = self.d2fS[active,:]
 
+        if self.proj_hess: # difference matrix for projection
+            self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray()
+
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
 
         self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
@@ -98,9 +111,12 @@ class NewtonBundle(OptAlg):
     def step(self):
 
         super(NewtonBundle, self).step()
+
+        G = self.D @ self.dfS # See Lewis-Wylie (2019)
+
         if self.proj_hess: # Project hessian
-            u, d, vh = np.linalg.svd(self.dfS)
-            null_dim = max((self.x_dim - self.k), 0) + sum(d < 1e-2 * max(d))
+            u, d, vh = np.linalg.svd(G)
+            null_dim = max((self.x_dim - self.k), 0) + sum(d < 1e-3 * max(d))
             U = vh[-null_dim:, :].T
 
             P = U @ U.T
@@ -108,19 +124,18 @@ class NewtonBundle(OptAlg):
         else:
             hess = self.d2fS
 
-        A = np.zeros([self.x_dim+1+self.k,self.x_dim+1+self.k])
+        A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
         top_left = np.einsum('s,sij->ij',self.lam_cur,hess)
 
         A[0:self.x_dim,0:self.x_dim]=top_left
         A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
         A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
-        A[(self.x_dim+1):, 0:self.x_dim]               = self.dfS
-        A[(self.x_dim+1):,-1]                          = -1
+        A[(self.x_dim+1):, 0:self.x_dim]               = G
 
-        b =  np.zeros(self.x_dim+1+self.k)
+        b =  np.zeros(self.x_dim+self.k)
         b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
         b[self.x_dim]   = 1
-        b[self.x_dim+1:] = np.einsum('ij,ij->i',self.dfS,self.S) - self.fS
+        b[self.x_dim+1:] = self.D@(np.einsum('ij,ij->i',self.dfS,self.S) - self.fS)
         self.cur_x = (np.linalg.pinv(A, rcond=1e-12) @ b)[0:self.x_dim]
 
         # optimality check
@@ -201,7 +216,9 @@ def get_lam(dfS,sub_ind=None,new_df=None):
     # Find lambda (warm start with previous iteration)
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
                       constraints + [lam @ dfS2 == p_tmp])
-    prob.solve(solver=cp.GUROBI)
+
+    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    # prob.solve(solver=cp.GUROBI)
 
     return np.sqrt(prob.value), lam.value.copy()
 
@@ -237,7 +254,9 @@ def get_lam_MIP(dfS, new_df=None,rank=None):
     # Find lambda (warm start with previous iteration)
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
                       constraints + [lam @ dfS2 == p_tmp])
-    prob.solve(solver=cp.GUROBI, verbose=True)
+
+    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    # prob.solve(solver=cp.GUROBI, verbose=True)
 
     if (rank is not None) or (new_df is not None):
         keep_inds = np.where(non_zero.value > 0)
@@ -264,6 +283,8 @@ def get_active(dfS, rank=None):
 
     # Find rows
     prob = cp.Problem(cp.Maximize(cp.trace(dfS2.T @ M @ dfS2)),constraints)
-    prob.solve(solver=cp.GUROBI, verbose=True)
+
+    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    # prob.solve(solver=cp.GUROBI, verbose=True)
 
     return np.where(non_zero.value > 0)[0]

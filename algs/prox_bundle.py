@@ -4,6 +4,15 @@ import cvxpy as cp
 from IPython import embed
 from algs.optAlg import OptAlg
 
+tol = 1e-15
+m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_NEAR_REL': 10,
+            'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
+            'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
+            }
+
 class ProxBundle(OptAlg):
     def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
@@ -44,12 +53,15 @@ class ProxBundle(OptAlg):
         self.p.value = self.cur_y  # Warm-starting
         prob = cp.Problem(cp.Minimize(prox_objective), self.constraints)
 
-        # Use MOSEK for accuracy
-        # m_params = {'MSK_DPAR_INTPNT_CO_TOL_PFEAS':1e-12}
-        # prob.solve(solver=cp.MOSEK,mosek_params=m_params)
+        # MOSEK
+        prob.solve(warm_start=True, solver=cp.MOSEK,mosek_params=m_params)
 
-        # If you don't have mosek just do:
-        prob.solve(warm_start=True, solver=cp.GUROBI)
+        # GUROBI
+        # g_params = {'BarConvTol': 1e-10,
+        #             'BarQCPConvTol': 1e-10,
+        #             'FeasibilityTol': 1e-9,
+        #             'OptimalityTol': 1e-9,}
+        # prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
 
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value
@@ -57,7 +69,7 @@ class ProxBundle(OptAlg):
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
 
-        thres = 1e-10 * max(self.cur_duals)
+        thres = tol * 1e2 * max(self.cur_duals)
         self.cur_active = np.where([(self.cur_duals[i] > thres) for i in range(len(self.constraints))])[0]
         self.cur_tight = sum(self.cur_active)
 
