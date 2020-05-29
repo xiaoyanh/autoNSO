@@ -160,7 +160,7 @@ class ProxBundle(OptAlg):
         if self.prune:
             duals = self.cur_duals.copy()
         else:
-            duals = self.cur_duals[self.constraint_ind].copy()
+            duals = np.array(self.cur_duals)[self.constraint_ind].copy()
 
         self.saved_bundle = {'bundle': self.path_y[self.constraint_ind,:],
                              'iter': self.cur_iter,

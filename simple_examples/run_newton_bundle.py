@@ -39,7 +39,7 @@ elif obj_type == 'Non-Convex':
     rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig_max sum of {}, {}x{} matrices'.format(n, m, m)
-    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
+    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
     bundle_prune = 'svd'
     crit = crit_ps
