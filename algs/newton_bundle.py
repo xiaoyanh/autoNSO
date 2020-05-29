@@ -24,7 +24,7 @@ g_params = {'BarConvTol': 1e-10,
 # Subgradient method
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
-                 rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, **kwargs):
+                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -85,15 +85,18 @@ class NewtonBundle(OptAlg):
             self.d2fS[i,:,:] = oracle['d2f']
 
         # # Add extra step where we reduce rank of S
-        if warm_start and start_type=='bundle':
-            # sig = np.linalg.svd(self.dfS,compute_uv=False)
-            # rank = int(1 * sum(sig > max(sig)*self.rank_thres))
-            # if self.proj_hess:
-            #     rank = min(rank,self.dfS.shape[0])
-            # active = np.argsort(warm_start['duals'])[-rank:]
+        if warm_start and start_type=='bundle' and (bundle_prune is not None):
+            assert bundle_prune in ['lambda','svd']
 
-            _, tmp_lam = get_lam(self.dfS)
-            active = np.where(tmp_lam > self.rank_thres * max(tmp_lam))[0]
+            if bundle_prune == 'svd':
+                sig = np.linalg.svd(self.dfS,compute_uv=False)
+                rank = int(1 * sum(sig > max(sig)*self.rank_thres))
+                if self.proj_hess:
+                    rank = min(rank,self.dfS.shape[0])
+                active = np.argsort(warm_start['duals'])[-rank:]
+            elif bundle_prune == 'lambda':
+                _, tmp_lam = get_lam(self.dfS)
+                active = np.where(tmp_lam > self.rank_thres * max(tmp_lam))[0]
 
             self.k     = len(active)
             self.S     = self.S[active, :]
