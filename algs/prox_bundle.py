@@ -21,7 +21,7 @@ g_params = {'BarConvTol': 1e-10,
             'OptimalityTol': 1e-9,}
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, **kwargs):
+    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, active_thres=1e-12, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
         self.objective.oracle_output = 'both'
@@ -35,6 +35,7 @@ class ProxBundle(OptAlg):
         self.name = 'ProxBundle'
         self.name += ' (mu=' + str(self.mu) + ',null_k=' + str(self.null_k) + ')'
         self.prune = prune
+        self.active_thres = active_thres
 
         # Add one bundle point to initial point
         self.cur_x = self.x0
@@ -72,7 +73,7 @@ class ProxBundle(OptAlg):
         # Find number of tight constraints
         self.cur_duals = [self.constraints[i].dual_value for i in range(len(self.constraints))]
 
-        thres = 1e-12 * max(self.cur_duals)
+        thres = self.active_thres * max(self.cur_duals)
         self.cur_active = np.where([(self.cur_duals[i] > thres) for i in range(len(self.constraints))])[0]
         self.cur_tight = sum(self.cur_active)
 

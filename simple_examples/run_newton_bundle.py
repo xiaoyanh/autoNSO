@@ -49,7 +49,7 @@ optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch=
 optAlg1.optimize()
 alg_list += [optAlg1]
 
-optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,prune=True, switch_crit=crit)
+optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,prune=True, switch_crit=crit, active_thres=1e-12)
 optAlg2.optimize()
 alg_list += [optAlg2]
 
