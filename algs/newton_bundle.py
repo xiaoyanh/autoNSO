@@ -65,7 +65,6 @@ class NewtonBundle(OptAlg):
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
 
-
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)

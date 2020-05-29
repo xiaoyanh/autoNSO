@@ -24,6 +24,7 @@ if obj_type == 'Strongly Convex':
     titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
+    bundle_prune = 'lambda'
 elif obj_type == 'Non-Convex':
     titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
@@ -32,6 +33,7 @@ elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig_max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
     rescaled  = True
+    bundle_prune = 'svd'
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
@@ -40,8 +42,10 @@ alg_list = []
 # Criteria for switching to newton-bundle
 def crit(met):
     # return met.fx_step == cut
-    # return (met.fx_step > 0) and (abs(met.fx_step) < 5e-8)
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+    if obj_type == 'Partly Smooth':
+        return (met.fx_step > 0) and (abs(met.fx_step) < 5e-8)
+    elif obj_type == 'Strongly Convex':
+        return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
 
 optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
@@ -54,7 +58,8 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=True, start_type='bundle')
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=True, start_type='bundle',
+                       bundle_prune=bundle_prune)
 optAlg0.optimize()
 alg_list += [optAlg0]
 
