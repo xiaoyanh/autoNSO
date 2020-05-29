@@ -14,17 +14,25 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-# obj_type = 'Partly Smooth'
-obj_type = 'Strongly Convex'
+obj_type = 'Partly Smooth'
+# obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
+
+# Criteria for switching to newton-bundle
+def crit_ps(met):
+    return (met.fx_step > 1e-14) and (abs(met.fx_step) < 5e-8)
+
+def crit_sc(met):
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
 
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
     bundle_prune = 'lambda'
+    crit = crit_sc
 elif obj_type == 'Non-Convex':
     titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
@@ -34,24 +42,17 @@ elif obj_type == 'Partly Smooth':
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
     rescaled  = True
     bundle_prune = 'svd'
+    crit = crit_ps
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
 alg_list = []
 
-# Criteria for switching to newton-bundle
-def crit(met):
-    # return met.fx_step == cut
-    if obj_type == 'Partly Smooth':
-        return (met.fx_step > 0) and (abs(met.fx_step) < 5e-8)
-    elif obj_type == 'Strongly Convex':
-        return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
-
-optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
-                ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
-                tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
-optAlg1.optimize()
-alg_list += [optAlg1]
+# optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
+#                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
+#                 tolerance_change=1e-14, tolerance_grad=1e-14) #, switch_crit=crit)
+# optAlg1.optimize()
+# alg_list += [optAlg1]
 
 optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,prune=True, switch_crit=crit, active_thres=1e-12)
 optAlg2.optimize()
@@ -59,7 +60,7 @@ alg_list += [optAlg2]
 
 # # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=True, start_type='bundle',
-                       bundle_prune=bundle_prune)
+                       bundle_prune=bundle_prune, rank_thres=1e-4)
 optAlg0.optimize()
 alg_list += [optAlg0]
 

@@ -87,6 +87,8 @@ class NewtonBundle(OptAlg):
         if warm_start and start_type=='bundle' and (bundle_prune is not None):
             assert bundle_prune in ['lambda','svd']
 
+            print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
+
             if bundle_prune == 'svd':
                 sig = np.linalg.svd(self.dfS,compute_uv=False)
                 rank = int(1 * sum(sig > max(sig)*self.rank_thres))
@@ -96,6 +98,8 @@ class NewtonBundle(OptAlg):
             elif bundle_prune == 'lambda':
                 _, tmp_lam = get_lam(self.dfS)
                 active = np.where(tmp_lam > self.rank_thres * max(tmp_lam))[0]
+
+            print('Bundle reduced to size with {}.'.format(len(active)), flush=True)
 
             self.k     = len(active)
             self.S     = self.S[active, :]
