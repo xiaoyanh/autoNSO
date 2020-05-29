@@ -82,12 +82,14 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle':
-            sig = np.linalg.svd(self.dfS,compute_uv=False)
-            rank = min(int(1 * sum(sig > max(sig)*1e-4)),self.dfS.shape[0])
-            active = np.argsort(warm_start['duals'])[-rank:]
+            # sig = np.linalg.svd(self.dfS,compute_uv=False)
+            # rank = int(1 * sum(sig > max(sig)*1e-4))
+            # if self.proj_hess:
+            #     rank = min(rank,self.dfS.shape[0])
+            # active = np.argsort(warm_start['duals'])[-rank:]
 
-            # _, tmp_lam = get_lam(self.dfS)
-            # active = np.where(tmp_lam > 1e-3 * max(tmp_lam))[0]
+            _, tmp_lam = get_lam(self.dfS)
+            active = np.where(tmp_lam > 1e-3 * max(tmp_lam))[0]
 
             self.k     = len(active)
             self.S     = self.S[active, :]
@@ -98,7 +100,10 @@ class NewtonBundle(OptAlg):
         self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray() # adjacent subtraction
         self.cur_delta, self.lam_cur = get_lam(self.dfS)
 
-        self.name = 'NewtonBundle (bund_sz=' + str(self.k) + ')'
+        self.name = 'NewtonBundle (bund_sz=' + str(self.k)
+        if self.proj_hess:
+            self.name += ' U-projected'
+        self.name += ')'
 
         self.update_params()
 
@@ -115,6 +120,7 @@ class NewtonBundle(OptAlg):
             U = Q[:,(self.k-1):]
 
             p = V @ np.linalg.inv(G@V) @ b_l
+
             UhU = np.stack([U.T @ self.d2fS[i,:,:] @ U for i in range(self.k)])
 
             A = np.einsum('s,sij->ij',self.lam_cur,UhU)
@@ -139,7 +145,7 @@ class NewtonBundle(OptAlg):
             b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
-            self.cur_x = (np.linalg.pinv(A, rcond=1e-14) @ b)[0:self.x_dim]
+            self.cur_x = (np.linalg.pinv(A, rcond=1e-10) @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)
@@ -189,7 +195,7 @@ class NewtonBundle(OptAlg):
                 and (self.cur_diam < self.diam_thres))
 
     def opt_check(self, A, b):
-            mu  = (np.linalg.pinv(A,rcond=1e-12) @ b)[self.x_dim:self.x_dim+self.k]
+            mu  = (np.linalg.pinv(A,rcond=1e-10) @ b)[self.x_dim:self.x_dim+self.k]
             tmp = np.zeros(self.k)
             tmp2 = np.zeros(self.x_dim)
             for i in range(self.k):
@@ -222,7 +228,7 @@ def get_lam(dfS,sub_ind=None,new_df=None):
 
     prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
     # prob.solve(warm_start=True,solver=cp.GUROBI,**g_params)
-
+    #
     return np.sqrt(prob.value), lam.value.copy()
 
 # Combinatorially find leaving index
