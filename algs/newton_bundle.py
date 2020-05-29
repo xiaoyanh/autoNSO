@@ -103,7 +103,11 @@ class NewtonBundle(OptAlg):
                 active = np.argsort(warm_start['duals'])[-rank:]
             elif bundle_prune == 'lambda':
                 _, tmp_lam = get_lam(self.dfS, solver=self.solver)
-                active = np.where(tmp_lam > self.rank_thres * max(tmp_lam))[0]
+                rank = sum(tmp_lam > self.rank_thres * max(tmp_lam))
+                if self.proj_hess:
+                    rank = min(rank,self.dfS.shape[0])
+                active = np.argsort(warm_start['duals'])[-rank:]
+
 
             print('Bundle reduced to size with {}.'.format(len(active)), flush=True)
 

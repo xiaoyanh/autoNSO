@@ -63,7 +63,7 @@ alg_list += [optAlg2]
 embed()
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=True,
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, solver='GUROBI')
 optAlg0.optimize()
 alg_list += [optAlg0]
