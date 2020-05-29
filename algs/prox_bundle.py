@@ -37,6 +37,8 @@ class ProxBundle(OptAlg):
         self.prune = prune
         self.active_thres = active_thres
 
+        print("Project Prune Bundle: {}".format(self.prune), flush=True)
+
         # Add one bundle point to initial point
         self.cur_x = self.x0
         self.cur_y = self.x0  # the auxiliary variables will null values
@@ -134,8 +136,8 @@ class ProxBundle(OptAlg):
         else:
             self.total_null += 1
 
-        # Remove inactive indices
-        if self.prune:
+
+        if self.prune: # Remove inactive indices
             if serious:
                 # Remove inactive constraints
                 inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
@@ -143,6 +145,8 @@ class ProxBundle(OptAlg):
                 [self.constraint_ind.pop(i) for i in inactive]
 
             self.constraint_ind += [self.cur_iter]
+        else:
+            self.constraint_ind = self.cur_active
 
         # Even if it is null step, add a constraint to cutting plane model
         self.constraints += [(cur_fy.copy() +

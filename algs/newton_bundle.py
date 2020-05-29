@@ -40,6 +40,8 @@ class NewtonBundle(OptAlg):
         self.pinv_cond   = pinv_cond
         self.random_sz   = random_sz
 
+        print("Project Hessian: {}".format(self.proj_hess),flush=True)
+
         # Prepare the bundle
         if warm_start is None:
             self.cur_x = self.x0
