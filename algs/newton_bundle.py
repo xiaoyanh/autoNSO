@@ -99,23 +99,22 @@ class NewtonBundle(OptAlg):
                 sig = np.linalg.svd(self.dfS,compute_uv=False)
                 rank = int(1 * sum(sig > max(sig)*self.rank_thres))
                 if self.proj_hess:
-                    rank = min(rank,self.dfS.shape[0])
+                    rank = min(rank,self.x_dim)
                 active = np.argsort(warm_start['duals'])[-rank:]
             elif bundle_prune == 'lambda':
                 _, tmp_lam = get_lam(self.dfS, solver=self.solver)
                 rank = sum(tmp_lam > self.rank_thres * max(tmp_lam))
                 if self.proj_hess:
-                    rank = min(rank,self.dfS.shape[0])
-                active = np.argsort(warm_start['duals'])[-rank:]
-
-
-            print('Bundle reduced to size with {}.'.format(len(active)), flush=True)
+                    rank = min(rank,self.x_dim)
+                active = np.argsort(tmp_lam)[-rank:]
 
             self.k     = len(active)
             self.S     = self.S[active, :]
             self.fS    = self.fS[active]
             self.dfS   = self.dfS[active,:]
             self.d2fS  = self.d2fS[active,:]
+
+        print('Final Bundle Size: {}.'.format(self.k), flush=True)
 
         self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray() # adjacent subtraction
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver)
