@@ -157,10 +157,15 @@ class ProxBundle(OptAlg):
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
 
+        if self.prune:
+            duals = self.cur_duals.copy()
+        else:
+            duals = self.cur_duals[self.constraint_ind].copy()
+
         self.saved_bundle = {'bundle': self.path_y[self.constraint_ind,:],
                              'iter': self.cur_iter,
                              'x'   : self.cur_x.copy(),
-                             'duals' : self.cur_duals.copy()}
+                             'duals' : duals}
 
     def check_crit(self):
         tmp = []
