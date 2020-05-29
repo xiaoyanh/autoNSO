@@ -22,7 +22,7 @@ g_params = {'BarConvTol': 1e-10,
             'FeasibilityTol': 1e-9,
             'OptimalityTol': 1e-9,}
 
-# Subgradient method
+# Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, solver='MOSEK', **kwargs):
@@ -252,7 +252,7 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
 
     return np.sqrt(np.abs(prob.value)), lam.value.copy()
 
-# Combinatorially find leaving index
+# Combinatorially find leaving index, MIP-Version 1
 def get_lam_MIP(dfS, new_df=None,rank=None, solver='MOSEK'):
 
     if new_df is not None:
@@ -296,7 +296,7 @@ def get_lam_MIP(dfS, new_df=None,rank=None, solver='MOSEK'):
     else:
         return np.sqrt(prob.value), lam.value.copy()
 
-# Combinatorially find leaving index
+# Combinatorially find leaving index, MIP-Version 2
 def get_active(dfS, rank=None, solver='MOSEK'):
 
     dfS2 = dfS.copy()
