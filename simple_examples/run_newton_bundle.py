@@ -41,7 +41,8 @@ elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig_max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
-    bundle_prune = 'svd'
+    # bundle_prune = 'svd'
+    # bundle_prune = 'lambda'
     crit = crit_ps
 
 # x0 = np.random.randn(n)
@@ -55,21 +56,26 @@ alg_list = []
 # alg_list += [optAlg1]
 
 optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,prune=False, switch_crit=crit,
-                     active_thres=1e-6)
+                     active_thres=1e-4)
 optAlg2.optimize()
 alg_list += [optAlg2]
 
 embed()
 
 # # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-3, pinv_cond=1e-10)
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=True,
+                       start_type='bundle', bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, solver='GUROBI')
 optAlg0.optimize()
+alg_list += [optAlg0]
+
+alg_list = []
+alg_list += [optAlg2]
 alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
 
 if n == 2:
     opt_plot.plotPath3D()
+
 opt_plot.plotValue(title=titl, rescaled=rescaled)
 

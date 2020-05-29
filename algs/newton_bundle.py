@@ -9,6 +9,7 @@ from scipy.sparse import diags
 from joblib import Parallel, delayed
 
 tol = 1e-15
+
 m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
             'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
             'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
@@ -24,7 +25,7 @@ g_params = {'BarConvTol': 1e-10,
 # Subgradient method
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
-                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, **kwargs):
+                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, solver='MOSEK', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -39,6 +40,9 @@ class NewtonBundle(OptAlg):
         self.rank_thres  = rank_thres
         self.pinv_cond   = pinv_cond
         self.random_sz   = random_sz
+
+        self.solver = solver
+        assert solver in ['MOSEK','GUROBI']
 
         print("Project Hessian: {}".format(self.proj_hess),flush=True)
 
@@ -98,7 +102,7 @@ class NewtonBundle(OptAlg):
                     rank = min(rank,self.dfS.shape[0])
                 active = np.argsort(warm_start['duals'])[-rank:]
             elif bundle_prune == 'lambda':
-                _, tmp_lam = get_lam(self.dfS)
+                _, tmp_lam = get_lam(self.dfS, solver=self.solver)
                 active = np.where(tmp_lam > self.rank_thres * max(tmp_lam))[0]
 
             print('Bundle reduced to size with {}.'.format(len(active)), flush=True)
@@ -110,7 +114,7 @@ class NewtonBundle(OptAlg):
             self.d2fS  = self.d2fS[active,:]
 
         self.D = diags([1,-1],offsets=[0,1],shape=(self.k-1,self.k)).toarray() # adjacent subtraction
-        self.cur_delta, self.lam_cur = get_lam(self.dfS)
+        self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver)
 
         self.name = 'NewtonBundle (bund_sz=' + str(self.k)
         if self.proj_hess:
@@ -169,7 +173,7 @@ class NewtonBundle(OptAlg):
         self.fx_step = (old_fx - self.cur_fx)
 
         # Combinatorially find leaving index
-        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'])
+        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
         jobs_delta = [jobs[i][0] for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
@@ -220,7 +224,7 @@ class NewtonBundle(OptAlg):
             assert np.isclose(sum(mu),1) # Check duals
 
 # Combinatorially find leaving index
-def get_lam(dfS,sub_ind=None,new_df=None):
+def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
     k = dfS.shape[0]
     xdim = dfS.shape[1]
     dfS_ = dfS.copy()
@@ -238,13 +242,15 @@ def get_lam(dfS,sub_ind=None,new_df=None):
     # Find lambda (warm start with previous iteration)
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))), constraints)
 
-    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
-    # prob.solve(warm_start=True,solver=cp.GUROBI,**g_params)
-    #
+    if solver == 'MOSEK':
+        prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    elif solver == 'GUROBI':
+        prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
+
     return np.sqrt(prob.value), lam.value.copy()
 
 # Combinatorially find leaving index
-def get_lam_MIP(dfS, new_df=None,rank=None):
+def get_lam_MIP(dfS, new_df=None,rank=None, solver='MOSEK'):
 
     if new_df is not None:
         if rank is None:
@@ -276,8 +282,10 @@ def get_lam_MIP(dfS, new_df=None,rank=None):
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))),
                       constraints + [lam @ dfS2 == p_tmp])
 
-    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
-    # prob.solve(solver=cp.GUROBI, verbose=True)
+    if solver=='MOSEK':
+        prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    elif solver=='GUROBI':
+        prob.solve(solver=cp.GUROBI, verbose=True)
 
     if (rank is not None) or (new_df is not None):
         keep_inds = np.where(non_zero.value > 0)
@@ -286,7 +294,7 @@ def get_lam_MIP(dfS, new_df=None,rank=None):
         return np.sqrt(prob.value), lam.value.copy()
 
 # Combinatorially find leaving index
-def get_active(dfS, rank=None):
+def get_active(dfS, rank=None, solver='MOSEK'):
 
     dfS2 = dfS.copy()
     k, x_dim = dfS2.shape
@@ -305,7 +313,9 @@ def get_active(dfS, rank=None):
     # Find rows
     prob = cp.Problem(cp.Maximize(cp.trace(dfS2.T @ M @ dfS2)),constraints)
 
-    prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
-    # prob.solve(solver=cp.GUROBI, verbose=True)
+    if solver == 'MOSEK':
+        prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+    elif solver == 'GUROBI':
+        prob.solve(solver=cp.GUROBI, verbose=True)
 
     return np.where(non_zero.value > 0)[0]
