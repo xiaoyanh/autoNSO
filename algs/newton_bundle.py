@@ -250,7 +250,7 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
     elif solver == 'GUROBI':
         prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
 
-    return np.sqrt(prob.value), lam.value.copy()
+    return np.sqrt(np.abs(prob.value)), lam.value.copy()
 
 # Combinatorially find leaving index
 def get_lam_MIP(dfS, new_df=None,rank=None, solver='MOSEK'):

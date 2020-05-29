@@ -62,9 +62,9 @@ alg_list += [optAlg2]
 
 embed()
 
-# # Run Newton-Bundle
+# Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune=None, rank_thres=1e-6, pinv_cond=1e-10, solver='MOSEK')
+                       start_type='bundle', bundle_prune='lambda', rank_thres=1e-2, pinv_cond=1e-10, solver='MOSEK')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
@@ -73,9 +73,10 @@ alg_list += [optAlg2]
 alg_list += [optAlg0]
 
 opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
+opt_plot.plotValue(title=titl, rescaled=rescaled)
 
 if n == 2:
     opt_plot.plotPath3D()
 
-opt_plot.plotValue(title=titl, rescaled=rescaled)
+
 
