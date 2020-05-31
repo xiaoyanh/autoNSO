@@ -8,7 +8,7 @@ Created on Mon Sep  2 10:18:22 2019
 
 import torch
 from IPython import embed
-from utils.jacobian_hessian import hessian
+from torch.autograd.functional import hessian
 
 class Objective:
     def __init__(self, obj_func, requires_grad=True, oracle_output='both'):
@@ -48,7 +48,7 @@ class Objective:
         
         # Uses auto differentiation to get subgradient
 
-        if self.requires_grad and (self.oracle_output != 'hess+') :
+        if self.requires_grad:
             self.fx.backward()
         
         if self.oracle_output == 'f':
@@ -61,10 +61,10 @@ class Objective:
                     }
         elif self.oracle_output == 'hess+':
             assert type(x) == torch.Tensor
-            hess = hessian(self.fx,self.x)
-            hess['f'] = self.oracle_f()
-
-            return hess
+            return {'f'  : self.oracle_f(),
+                    'df' : self.oracle_df(),
+                    'd2f': hessian(self.obj_func,self.x),
+                    }
         
     def oracle_f(self):
         if self.x is None:

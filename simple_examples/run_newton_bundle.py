@@ -14,9 +14,9 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, PartlySmooth3
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
-obj_type = 'Partly Smooth 3D'
-# obj_type = 'Strongly Convex'
+# obj_type = 'Partly Smooth'
+# obj_type = 'Partly Smooth 3D'
+obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -47,13 +47,13 @@ elif obj_type == 'Partly Smooth':
     crit = crit_ps
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  2(x^2 + y^2 + z^2)'
-    objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 100
+    objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 30
     rescaled  = True
     n = 3
     crit = crit_sc
 
-x0 = np.random.randn(n)
-# x0 = np.ones(n)
+# x0 = np.random.randn(n)
+x0 = np.ones(n)
 alg_list = []
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
@@ -67,7 +67,7 @@ optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,
 optAlg2.optimize()
 alg_list += [optAlg2]
 
-embed()
+# embed()
 
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
