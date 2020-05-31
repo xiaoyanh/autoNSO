@@ -21,7 +21,8 @@ g_params = {'BarConvTol': 1e-10,
             'OptimalityTol': 1e-9,}
 
 class ProxBundle(OptAlg):
-    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, active_thres=1e-12, **kwargs):
+    def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, active_thres=1e-12,
+                 solver='MOSEK',**kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
         self.objective.oracle_output = 'both'
@@ -36,8 +37,11 @@ class ProxBundle(OptAlg):
         self.name += ' (mu=' + str(self.mu) + ',null_k=' + str(self.null_k) + ')'
         self.prune = prune
         self.active_thres = active_thres
+        self.solver = solver
 
-        print("Project Prune Bundle: {}".format(self.prune), flush=True)
+        assert self.solver in ['GUROBI','MOSEK']
+
+        print("Prune Bundle: {}".format(self.prune), flush=True)
 
         # Add one bundle point to initial point
         self.cur_x = self.x0
@@ -64,10 +68,10 @@ class ProxBundle(OptAlg):
         prob = cp.Problem(cp.Minimize(prox_objective), self.constraints)
 
         # MOSEK
-        prob.solve(warm_start=True, solver=cp.MOSEK,mosek_params=m_params)
-
-        # GUROBI
-        # prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
+        if self.solver == 'MOSEK':
+            prob.solve(warm_start=True, solver=cp.MOSEK,mosek_params=m_params)
+        elif self.solver == 'GUROBI':
+            prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
 
         # Update current iterate value and update the bundle
         self.cur_y = self.p.value

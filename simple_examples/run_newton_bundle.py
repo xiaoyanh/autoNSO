@@ -9,12 +9,13 @@ from algs.torch_alg import BFGS
 from vis.visualize import OptPlot
 from algs.prox_bundle import ProxBundle
 from algs.newton_bundle import NewtonBundle
-from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth
+from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, PartlySmooth3D
 
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
 obj_type = 'Partly Smooth'
+obj_type = 'Partly Smooth 3D'
 # obj_type = 'Strongly Convex'
 m = 25
 # k = 3
@@ -44,9 +45,15 @@ elif obj_type == 'Partly Smooth':
     # bundle_prune = 'svd'
     # bundle_prune = 'lambda'
     crit = crit_ps
+elif obj_type == 'Partly Smooth 3D':
+    titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  2(x^2 + y^2 + z^2)'
+    objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 100
+    rescaled  = True
+    n = 3
+    crit = crit_sc
 
-# x0 = np.random.randn(n)
-x0 = np.ones(n)
+x0 = np.random.randn(n)
+# x0 = np.ones(n)
 alg_list = []
 
 # optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=0.1, linesearch='lewis_overton',
