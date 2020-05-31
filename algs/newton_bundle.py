@@ -1,12 +1,12 @@
 import torch
 import numpy as np
 import cvxpy as cp
+import scipy.linalg as la
 import multiprocessing
 
 from IPython import embed
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
-from scipy.linalg import solve
 from joblib import Parallel, delayed
 
 tol = 1e-15
@@ -148,7 +148,7 @@ class NewtonBundle(OptAlg):
             b2 = np.einsum('s,ij,js->i',self.lam_cur,U.T,self.dfS.T)
             b  = b1 - b2
 
-            xu = np.linalg.pinv(A,rcond=self.pinv_cond)@b
+            xu = la.pinv2(A, rcond=self.pinv_cond) @ b
             self.cur_x = U@xu + p
         else:
             hess = self.d2fS
@@ -165,7 +165,7 @@ class NewtonBundle(OptAlg):
             b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
-            self.cur_x = (np.linalg.pinv(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
+            self.cur_x = (la.pinv2(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)

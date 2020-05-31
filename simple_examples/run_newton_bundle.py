@@ -42,7 +42,7 @@ elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig_max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
-    # bundle_prune = 'svd'
+    bundle_prune = 'svd'
     # bundle_prune = 'lambda'
     crit = crit_ps
 elif obj_type == 'Partly Smooth 3D':
@@ -67,11 +67,9 @@ optAlg2 = ProxBundle(objective, x0=x0, max_iter=iters, mu=mu_sz, null_k=beta_sz,
 optAlg2.optimize()
 alg_list += [optAlg2]
 
-# embed()
-
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune='svd', rank_thres=1e-4, pinv_cond=1e-10, solver='MOSEK')
+                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-4, pinv_cond=1e-3, solver='MOSEK')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
