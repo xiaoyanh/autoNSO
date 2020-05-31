@@ -12,10 +12,7 @@ def partlysmooth3D(x):
     if type(x) != Tensor:  # If non-tensor passed in, no gradient will be used
         x = tensor(x, dtype=torch.double, requires_grad=False)
     assert len(x) == 3
-    tmp = (x[0]**2 - x[1])**2 + x[2]**2
-    tmp = sqrt(tmp)
-    # tmp = sqrt() + 2*(x[0]**2 + x[1]**2 + x[2]**2)
-    return tmp
+    return sqrt((x[0]**2 - x[1])**2 + x[2]**2) + 2*(x[0]**2 + x[1]**2 + x[2]**2)
 
 PartlySmooth3D = Objective(partlysmooth3D)
 

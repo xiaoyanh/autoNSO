@@ -6,6 +6,7 @@ import multiprocessing
 from IPython import embed
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
+from scipy.linalg import solve
 from joblib import Parallel, delayed
 
 tol = 1e-15
@@ -147,7 +148,7 @@ class NewtonBundle(OptAlg):
             b2 = np.einsum('s,ij,js->i',self.lam_cur,U.T,self.dfS.T)
             b  = b1 - b2
 
-            xu = np.linalg.inv(A)@b
+            xu = np.linalg.pinv(A,rcond=self.pinv_cond)@b
             self.cur_x = U@xu + p
         else:
             hess = self.d2fS

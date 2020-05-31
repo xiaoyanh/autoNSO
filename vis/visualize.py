@@ -191,7 +191,7 @@ class OptPlot:
 
         if title is not None:
             plt.title(title)
-        
+        # plt.ion()
         plt.ylim((min_f,max_f))
         np.set_printoptions(precision=2)
         ylabs = np.geomspace(min_f,max_f,num=5)
@@ -200,6 +200,8 @@ class OptPlot:
             
         plt.legend()
         plt.show()
+        # plt.draw()
+
 
     # check that all optimization algorithms have the same objective and inputs
     def do_check(self):
