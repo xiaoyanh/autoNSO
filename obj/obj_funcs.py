@@ -2,11 +2,16 @@ import torch
 import numpy as np
 from IPython import embed
 from obj.objective import Objective
-from torch import abs, max, sum, norm, einsum, stack, symeig, tensor, Tensor
+from torch import abs, max, sum, norm, sqrt, einsum, stack, symeig, tensor, Tensor
 
 def simple2D(x):
     return max(abs(x[0]),(0.5 * x[1]**2))
 Simple2D = Objective(simple2D)
+
+def partlysmooth3D(x):
+    assert len(x) == 3
+    return sqrt((x[0]**2 - x[1])**2 - x[2]**2) + 2(x[0]**2 + x[1]**2 + x[2]**2)
+PartlySmooth3D = Objective(partlysmooth3D)
 
 # Below are example objective functions from Lewis-Wylie 2019 (https://arxiv.org/abs/1907.11742)
 
