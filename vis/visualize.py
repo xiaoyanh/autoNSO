@@ -143,7 +143,7 @@ class OptPlot:
     # Plot for objective function of two inputs
     def plotPath4D(self):
         assert len(self.opt_algs) > 0
-        assert self.x_dim == 3  # 3D domain
+        assert self.x_dim == 3  # 3D domain, 4D with function (unplotted)
 
         # Set unset limits
         if None in [self.x1_max, self.x1_min, self.x2_max, self.x2_min]:
