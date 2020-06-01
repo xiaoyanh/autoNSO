@@ -2,10 +2,11 @@ import torch
 import mosek
 import numpy as np
 import cvxpy as cp
-import utils.pinv import pinv2
 import multiprocessing
 
 from IPython import embed
+from utils.pinv import pinv2
+# from scipy.linalg import pinv2
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from joblib import Parallel, delayed
@@ -108,7 +109,7 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle' and (bundle_prune is not None):
-            assert bundle_prune in ['lambda','svd']
+            assert bundle_prune in ['lambda','svd','log_lambda','log_svd']
 
             print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
 
@@ -124,6 +125,27 @@ class NewtonBundle(OptAlg):
                 if self.proj_hess:
                     rank = min(rank,self.x_dim)
                 active = np.argsort(tmp_lam)[-rank:]
+            elif bundle_prune == 'log_lambda':
+                _, tmp_lam = get_lam(self.dfS, solver=self.solver)
+                sorted = np.argsort(abs(np.diff(np.log10(np.sort(tmp_lam)[::-1]))))
+                if sorted[-1]==0: # Exclude the first one
+                    rank = sorted[-2] + 1
+                else:
+                    rank = sorted[-1] + 1
+                if self.proj_hess:
+                    rank = min(rank, self.x_dim)
+                active = np.argsort(tmp_lam)[-rank:]
+            elif bundle_prune == 'log_svd':
+                sig = np.linalg.svd(self.dfS,compute_uv=False)
+                sorted = np.argsort(abs(np.diff(np.log10(np.sort(sig)[::-1]))))
+                if sorted[-1]==0: # Exclude the first one
+                    rank = sorted[-2] + 1
+                else:
+                    rank = sorted[-1] + 1
+                if self.proj_hess:
+                    rank = min(rank, self.x_dim)
+                active = np.argsort(warm_start['duals'])[-rank:]
+
 
             self.k     = len(active)
             self.S     = self.S[active, :]
@@ -164,7 +186,7 @@ class NewtonBundle(OptAlg):
             b2 = np.einsum('s,ij,js->i',self.lam_cur,U.T,self.dfS.T)
             b  = b1 - b2
 
-            xu = la.pinv2(A, rcond=self.pinv_cond) @ b
+            xu = pinv2(A, rcond=self.pinv_cond) @ b
             self.cur_x = U@xu + p
         else:
             hess = self.d2fS
@@ -181,7 +203,7 @@ class NewtonBundle(OptAlg):
             b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
-            embed()
+
             self.cur_x = (pinv2(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
 
         # optimality check

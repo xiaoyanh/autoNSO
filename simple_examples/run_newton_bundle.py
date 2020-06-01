@@ -13,8 +13,8 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, PartlySmooth3
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-# obj_type = 'Partly Smooth'
-obj_type = 'Partly Smooth 3D'
+obj_type = 'Partly Smooth'
+# obj_type = 'Partly Smooth 3D'
 # obj_type = 'Strongly Convex'
 m = 25
 # k = 3
@@ -31,7 +31,7 @@ if obj_type == 'Strongly Convex':
     titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
-    bundle_prune = 'lambda'
+    bundle_prune = 'log_svd'
     crit = crit_sc
 elif obj_type == 'Non-Convex':
     titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
@@ -43,6 +43,7 @@ elif obj_type == 'Partly Smooth':
     rescaled  = True
     bundle_prune = 'svd'
     # bundle_prune = 'lambda'
+    # bundle_prune = 'log_svd'
     crit = crit_ps
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  2(x^2 + y^2 + z^2)'
@@ -69,7 +70,7 @@ alg_list += [optAlg2]
 
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-2, pinv_cond=1e-3, solver='MOSEK')
+                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-4, pinv_cond=1e-3, solver='MOSEK')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
