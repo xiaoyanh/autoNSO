@@ -2,7 +2,7 @@ import torch
 import mosek
 import numpy as np
 import cvxpy as cp
-import scipy.linalg as la
+import utils.pinv import pinv2
 import multiprocessing
 
 from IPython import embed
@@ -181,7 +181,8 @@ class NewtonBundle(OptAlg):
             b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
-            self.cur_x = (la.pinv2(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
+            embed()
+            self.cur_x = (pinv2(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
 
         # optimality check
         # self.opt_check(A, b)

@@ -146,7 +146,7 @@ class OptPlot:
         assert self.x_dim == 3  # 3D domain, 4D with function (unplotted)
 
         # Set unset limits
-        if None in [self.x1_max, self.x1_min, self.x2_max, self.x2_min]:
+        if None in [self.x1_max, self.x1_min, self.x2_max, self.x2_min, self.x3_max, self.x3_min]:
             x1_lim = float('-inf')
             x2_lim = float('-inf')
             x3_lim = float('-inf')
@@ -186,8 +186,15 @@ class OptPlot:
         for alg in self.opt_algs:
             ax.plot(alg.path_x[:, 0], alg.path_x[:, 1], alg.path_x[:, 2],
                     color=next(palette), marker=next(markers), alpha=.6, label=alg.name)
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        ax.set_xlim(self.x1_min, self.x1_max)
+        ax.set_ylim(self.x2_min, self.x2_max)
+        ax.set_zlim(self.x3_min, self.x3_max)
+
         plt.legend()
-        plt.show(block=False)
+        plt.show()
 
     # Plot for objective function of two inputs
     def plotValue(self, val='path_fx', title=None, rescaled=False):

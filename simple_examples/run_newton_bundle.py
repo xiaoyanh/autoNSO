@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #%%
 
-import importlib
 import numpy as np
 from IPython import embed
 from algs.torch_alg import BFGS
@@ -14,8 +13,8 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, PartlySmooth3
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
-# obj_type = 'Partly Smooth 3D'
+# obj_type = 'Partly Smooth'
+obj_type = 'Partly Smooth 3D'
 # obj_type = 'Strongly Convex'
 m = 25
 # k = 3
@@ -51,6 +50,7 @@ elif obj_type == 'Partly Smooth 3D':
     rescaled  = True
     n = 3
     crit = crit_sc
+    bundle_prune = 'svd'
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
@@ -69,7 +69,7 @@ alg_list += [optAlg2]
 
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-4, pinv_cond=1e-3, solver='MOSEK')
+                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-2, pinv_cond=1e-3, solver='MOSEK')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
@@ -77,13 +77,17 @@ alg_list = []
 alg_list += [optAlg2]
 alg_list += [optAlg0]
 
-opt_plot = OptPlot(opt_algs=alg_list, resolution=100)
+opt_plot = OptPlot(opt_algs=alg_list, resolution=100,
+                   plot_lims={'x1_max':1e-3,'x2_max':1e-3,'x3_max':1e-3,'x1_min':-1e-3,'x2_min':-1e-3,'x3_min':-1e-3})
+
+if n == 2:
+    opt_plot.plotPath3D()
+elif n==3:
+    opt_plot.plotPath4D()
 opt_plot.plotValue(title=titl, rescaled=rescaled)
 
-embed()
 
-# if n == 2:
-#     opt_plot.plotPath3D()
+
 
 
 
