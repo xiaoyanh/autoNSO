@@ -30,12 +30,15 @@ class OptPlot:
             
         self.x1_max = None
         self.x2_max = None
+        self.x3_max = None
+
         self.x1_min = None
         self.x2_min = None
+        self.x3_min = None
             
         if plot_lims is not None:
             for key in plot_lims:
-                assert key in ['x1_max', 'x2_max', 'x1_min', 'x2_min']
+                assert key in ['x1_max', 'x2_max', 'x3_max', 'x1_min', 'x2_min', 'x3_min']
                 setattr(self, key, plot_lims[key])
         
         self.axis_rot = axis_rot
@@ -146,6 +149,7 @@ class OptPlot:
         if None in [self.x1_max, self.x1_min, self.x2_max, self.x2_min]:
             x1_lim = float('-inf')
             x2_lim = float('-inf')
+            x3_lim = float('-inf')
 
             for alg in self.opt_algs:
                 path_max = np.nanmax(np.abs(alg.path_x), axis=0)
@@ -153,6 +157,8 @@ class OptPlot:
                     x1_lim = path_max[0]
                 if path_max[1] > x2_lim:
                     x2_lim = path_max[1]
+                if path_max[2] > x3_lim:
+                    x3_lim = path_max[2]
 
             if self.x1_max == None:
                 self.x1_max = 1.2 * x1_lim
@@ -162,39 +168,23 @@ class OptPlot:
                 self.x2_max = 1.2 * x2_lim
             if self.x2_min == None:
                 self.x2_min = -1.2 * x2_lim
-
-        x1 = np.linspace(self.x1_min, self.x1_max, self.resolution)
-        x2 = np.linspace(self.x2_min, self.x2_max, self.resolution)
-        x1_grid, x2_grid = np.meshgrid(x1, x2)
-
-        def f(x1, x2):
-            val = self.obj_func(torch.tensor([x1, x2], dtype=torch.double))
-            try:
-                return val.data.numpy()
-            except:
-                return val
-
-        vf = np.vectorize(f)
-        fx_grid = vf(x1_grid, x2_grid)
-        if np.nanmin(fx_grid) < 0:
-            fx_grid -= np.nanmin(fx_grid)
+            if self.x3_max == None:
+                self.x3_max = 1.2 * x3_lim
+            if self.x3_min == None:
+                self.x3_min = -1.2 * x3_lim
 
         # Plot objective
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot_wireframe(x1_grid, x2_grid, fx_grid, rstride=5, cstride=5, alpha=0.3, linewidths=0.1, colors='black')
-        ax.plot_surface(x1_grid, x2_grid, fx_grid, rstride=5, cstride=5, cmap='jet', alpha=.3, edgecolor='none')
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
         ax.view_init(self.axis_rot[0], self.axis_rot[1])
-        ax.zaxis._set_scale('log')
-
         palette = itertools.cycle(sns.hls_palette(len(self.opt_algs), l=.3, s=.8))
         markers = itertools.cycle(('*', '.', 'X', '^', 'D'))
 
         # Plot optimization path
         for alg in self.opt_algs:
-            ax.plot(alg.path_x[:, 0], alg.path_x[:, 1], alg.path_fx,
+            ax.plot(alg.path_x[:, 0], alg.path_x[:, 1], alg.path_x[:, 2],
                     color=next(palette), marker=next(markers), alpha=.6, label=alg.name)
         plt.legend()
         plt.show(block=False)
