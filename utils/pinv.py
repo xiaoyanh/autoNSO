@@ -1,9 +1,10 @@
 import numpy as np
 import scipy.linalg.decomp_svd as decomp_svd
 
+from IPython import embed
 from scipy.linalg.decomp import _asarray_validated
 
-def pinv2(a, cond=None, rcond=None, return_rank=False, check_finite=True):
+def pinv2(a, rank=None, cond=None, rcond=None, return_rank=False, check_finite=True):
     """
     Compute the (Moore-Penrose) pseudo-inverse of a matrix.
     Calculate a generalized inverse of a matrix using its
@@ -50,14 +51,19 @@ def pinv2(a, cond=None, rcond=None, return_rank=False, check_finite=True):
     a = _asarray_validated(a, check_finite=check_finite)
     u, s, vh = decomp_svd.svd(a, full_matrices=False, check_finite=False)
 
-    if rcond is not None:
-        cond = rcond
-    if cond in [None, -1]:
-        t = u.dtype.char.lower()
-        cond = np.max(s) * max(a.shape) * np.finfo(t).eps
+    if rank is None:
+        if rcond is not None:
+            cond = np.max(s) * rcond
+        if cond in [None, -1]:
+            t = u.dtype.char.lower()
+            cond = np.max(s) * max(a.shape) * np.finfo(t).eps
+        rank = np.sum(s > cond)
+    elif rank == float('inf'):
+        assert (cond is not None)
+        rank = len(s)
+        s[s<cond] = cond
 
-    rank = np.sum(s > cond)
-
+    # print(rank, flush='True')
     u = u[:, :rank]
     u /= s[:rank]
     B = np.transpose(np.conjugate(np.dot(u, vh[:rank])))

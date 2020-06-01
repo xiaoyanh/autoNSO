@@ -13,7 +13,6 @@ def partlysmooth3D(x):
         x = tensor(x, dtype=torch.double, requires_grad=False)
     assert len(x) == 3
     return sqrt((x[0]**2 - x[1])**2 + x[2]**2) + 2*(x[0]**2 + x[1]**2 + x[2]**2)
-
 PartlySmooth3D = Objective(partlysmooth3D)
 
 # Below are example objective functions from Lewis-Wylie 2019 (https://arxiv.org/abs/1907.11742)
@@ -87,3 +86,20 @@ def partlysmooth(n=50, m=25, seed=0, **kwargs):
         return symeig(mat,eigenvectors=True)[0][-1] # eigenvalues in ascending order
 
     return Objective(ps_function, **kwargs)
+
+# Half and half
+def halfandhalf(n=50, seed=0, **kwargs):
+    A = torch.ones(n,dtype=torch.double)
+    A[1::2] = 0
+    A = torch.diag(A)
+
+    B = torch.diag((torch.arange(n,dtype=torch.double)+1.0)**-1)
+
+    def hh_function(x):
+        if type(x) != Tensor: # If non-tensor passed in, no gradient will be used
+            x = tensor(x, dtype=torch.double, requires_grad=False)
+        assert len(x) == n
+
+        return np.sqrt(x.T@A@x) + x.T@B@x
+
+    return Objective(hh_function, **kwargs)
