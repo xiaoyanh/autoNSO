@@ -1,4 +1,5 @@
 import torch
+import mosek
 import numpy as np
 import cvxpy as cp
 import scipy.linalg as la
@@ -9,15 +10,30 @@ from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from joblib import Parallel, delayed
 
-tol = 1e-15
+tol = 1e-6
 
-m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_NEAR_REL': 10,
-            'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
-            }
+# m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
+#             'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
+#             'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
+#             'MSK_DPAR_INTPNT_QO_TOL_NEAR_REL': 10,
+#             'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
+#             'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
+#             mosek.iparam.intpnt_solve_form: mosek.solveform.primal,
+#             # 'MSK_IPAR_INTPNT_MAX_ITERATIONS': int(1e3),
+#             }
+
+m_params = {}
+# m_params = {
+#             'MSK_DPAR_INTPNT_CO_TOL_DFEAS': tol,
+#             'MSK_DPAR_INTPNT_CO_TOL_INFEAS': tol,
+#             'MSK_DPAR_INTPNT_CO_TOL_MU_RED': tol,
+#             'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 10,
+#             'MSK_DPAR_INTPNT_CO_TOL_PFEAS': tol,
+#             'MSK_DPAR_INTPNT_CO_TOL_REL_GAP': tol,
+#             # 'MSK_IPAR_OPTIMIZER': 'CONIC',
+#             'MSK_IPAR_INTPNT_MAX_ITERATIONS': int(1e4),
+#             # mosek.iparam.intpnt_solve_form: mosek.solveform.primal,
+#             }
 g_params = {'BarConvTol': 1e-10,
             'BarQCPConvTol': 1e-10,
             'FeasibilityTol': 1e-9,
@@ -239,19 +255,18 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
     if sub_ind is not None:
         dfS_[sub_ind] = new_df
 
-    constraints = [cp.sum(lam) == 1.0]
-    constraints += [lam >= 0]
+    constraints = [np.ones(k) @ lam == 1.0]
+    constraints += [-lam <= 0]
     constraints += [lam @ dfS_ == p_tmp]
 
     # Find lambda (warm start with previous iteration)
     prob = cp.Problem(cp.Minimize(cp.quad_form(p_tmp, np.eye(xdim))), constraints)
-
     if solver == 'MOSEK':
-        prob.solve(warm_start=True, solver=cp.MOSEK, mosek_params=m_params)
+        prob.solve(solver=cp.MOSEK, mosek_params=m_params)
     elif solver == 'GUROBI':
-        prob.solve(warm_start=True, solver=cp.GUROBI,**g_params)
+        prob.solve(solver=cp.GUROBI,**g_params)
 
-    return np.sqrt(np.abs(prob.value)), lam.value.copy()
+    return np.sqrt(prob.value), lam.value.copy()
 
 # Combinatorially find leaving index, MIP-Version 1
 def get_lam_MIP(dfS, new_df=None,rank=None, solver='MOSEK'):
