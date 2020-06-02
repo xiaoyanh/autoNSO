@@ -1,5 +1,6 @@
 import torch
 import mosek
+import quadprog
 import numpy as np
 import cvxpy as cp
 import multiprocessing
@@ -50,6 +51,12 @@ osqp_params = {"eps_abs":1e-10,
                'sigma':1e-8,
                'alpha':1.1}
 
+cvx_params = {'max_iters' : int(1e3),
+                'abstol'  : 1e-9,
+                'reltol'  : 1e-8,
+                'feastol' : 1e-9,
+                'kktsolver' : 'robust',}
+
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
@@ -72,7 +79,7 @@ class NewtonBundle(OptAlg):
         self.adaptive_bundle = adaptive_bundle
 
         self.solver = solver
-        assert solver in ['MOSEK','GUROBI','OSQP']
+        assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog']
 
         print("Project Hessian: {}".format(self.proj_hess),flush=True)
 
@@ -301,21 +308,19 @@ class NewtonBundle(OptAlg):
 # Combinatorially find leaving index
 def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
     k = dfS.shape[0]
-    xdim = dfS.shape[1]
+
     dfS_ = dfS.copy()
-
-    # p_tmp = cp.Variable(xdim)
-    lam   = cp.Variable(k)
-
     if sub_ind is not None:
         dfS_[sub_ind] = new_df
+    Q = dfS_ @ dfS_.T
+
+    lam   = cp.Variable(k)
 
     constraints = [cp.sum(lam) == 1.0]
     constraints += [lam >= 0.0]
-    # constraints += [lam @ dfS_ == p_tmp]
 
     # Find lambda (warm start with previous iteration)
-    prob = cp.Problem(cp.Minimize(cp.quad_form(lam @ dfS_, np.eye(xdim))), constraints)
+    prob = cp.Problem(cp.Minimize(cp.quad_form(lam, Q)), constraints)
 
     try:
         if solver == 'MOSEK':
@@ -324,6 +329,10 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
             prob.solve(solver=cp.GUROBI,**g_params)
         elif solver == 'OSQP':
             prob.solve(solver=cp.OSQP, **osqp_params)
+        elif solver == 'CVXOPT':
+            prob.solve(solver=cp.CVXOPT, **cvx_params)
+        elif solver == 'quadprog':
+            pass
     except:
         if solver == 'MOSEK':
             prob.solve(solver=cp.MOSEK, mosek_params=m_params, verbose=True)
@@ -331,5 +340,9 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
             prob.solve(solver=cp.GUROBI,**g_params, verbose=True)
         elif solver == 'OSQP':
             prob.solve(solver=cp.OSQP, **osqp_params, verbose=True)
+        elif solver == 'CVXOPT':
+            prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
+        elif solver == 'quadprog':
+            pass
 
     return np.sqrt(prob.value), lam.value.copy()

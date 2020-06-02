@@ -13,10 +13,10 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth,halfandhalf, P
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
+# obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 3D'
-# obj_type = 'Strongly Convex'
+obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -91,7 +91,7 @@ alg_list += [optAlg2]
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver='MOSEK', adaptive_bundle=False)
+                       solver='CVXOPT', adaptive_bundle=False)
 optAlg0.optimize()
 alg_list += [optAlg0]
 
