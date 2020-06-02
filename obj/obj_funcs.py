@@ -92,7 +92,6 @@ def halfandhalf(n=50, seed=0, **kwargs):
     A = torch.ones(n,dtype=torch.double)
     A[1::2] = 0
     A = torch.diag(A)
-
     B = torch.diag((torch.arange(n,dtype=torch.double)+1.0)**-1)
 
     def hh_function(x):
@@ -100,6 +99,6 @@ def halfandhalf(n=50, seed=0, **kwargs):
             x = tensor(x, dtype=torch.double, requires_grad=False)
         assert len(x) == n
 
-        return np.sqrt(x.T@A@x) + x.T@B@x
+        return sqrt(x.T@A@x) + x.T@B@x
 
     return Objective(hh_function, **kwargs)

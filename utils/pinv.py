@@ -63,7 +63,7 @@ def pinv2(a, rank=None, cond=None, rcond=None, return_rank=False, check_finite=T
         rank = len(s)
         s[s<cond] = cond
 
-    # print(rank, flush='True')
+    print(rank, flush='True')
     u = u[:, :rank]
     u /= s[:rank]
     B = np.transpose(np.conjugate(np.dot(u, vh[:rank])))

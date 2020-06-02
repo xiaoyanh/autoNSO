@@ -8,12 +8,13 @@ from algs.torch_alg import BFGS
 from vis.visualize import OptPlot
 from algs.prox_bundle import ProxBundle
 from algs.newton_bundle import NewtonBundle
-from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, PartlySmooth3D
+from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth,halfandhalf, PartlySmooth3D
 
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
 obj_type = 'Partly Smooth'
+# obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 3D'
 # obj_type = 'Strongly Convex'
 m = 25
@@ -28,24 +29,31 @@ def crit_ps(met):
 def crit_sc(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
 
+def crit_hh(met):
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
+
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
     bundle_prune = 'log_svd'
     crit = crit_sc
+    rank_thres = 1e-2
+    pinv_cond = 1e-3
 elif obj_type == 'Non-Convex':
     titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
     rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig_max sum of {}, {}x{} matrices'.format(n, m, m)
-    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
+    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
     rescaled  = True
     bundle_prune = 'svd'
     # bundle_prune = 'lambda'
     # bundle_prune = 'log_svd'
     crit = crit_ps
+    rank_thres = 1e-4
+    pinv_cond = 1e-3
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  2(x^2 + y^2 + z^2)'
     objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 25
@@ -53,6 +61,17 @@ elif obj_type == 'Partly Smooth 3D':
     n = 3
     crit = crit_sc
     bundle_prune = 'svd'
+    rank_thres = 1e-2
+    pinv_cond = 1e-2
+elif obj_type == 'Half-and-Half':
+    n = 4
+    titl = obj_type + ': n={}'.format(n)
+    objective = halfandhalf(n=n); mu_sz=1; beta_sz=1e-5; iters = 50
+    rescaled  = True
+    crit = crit_hh
+    bundle_prune = 'svd'
+    rank_thres = 1e-1
+    pinv_cond  = 1e1
 
 # x0 = np.random.randn(n)
 x0 = np.ones(n)
@@ -71,7 +90,7 @@ alg_list += [optAlg2]
 
 # Run Newton-Bundle
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=1e-4, pinv_cond=1e-3,
+                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
                        solver='MOSEK', adaptive_bundle=False)
 optAlg0.optimize()
 alg_list += [optAlg0]
