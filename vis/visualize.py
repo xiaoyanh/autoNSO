@@ -278,5 +278,3 @@ class OptPlot:
         
         self.x_dim      = ref_alg.x_dim
         self.obj_func   = ref_alg.objective.obj_func
-        
-        
