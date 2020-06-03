@@ -17,6 +17,7 @@ Quick examples are in the  `simple_examples`  folder. For instance, the followin
 
 ```
 def simple2D(x):
+    x = tensor(x,dtype=torch.double, requires_grad=False) if type(x) != Tensor else x # Must be torch tensor
     return torch.max(torch.abs(x[0]),0.5 * x[1]**2)
 Simple2D = Objective(simple2D)
 optAlg1 = ProxBundle(Simple2D, x0=[10,3], max_iter=50); optAlg1.optimize()
