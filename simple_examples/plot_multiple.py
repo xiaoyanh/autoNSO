@@ -19,7 +19,7 @@ from algs.torch_alg import Subgradient, Nesterov, BFGS
 #%%
 # f(x,y) = max(|x|,y^2)
 def simple2D(x):
-    x = tensor(x,dtype=torch.double, requires_grad=False) if type(x) != Tensor else x # Must be torch tensor
+    x = tensor(x,dtype=torch.double) if type(x) != Tensor else x # Must be torch tensor
     return torch.max(torch.abs(x[0]),0.5 * x[1]**2)
 
 # Create the objective function
