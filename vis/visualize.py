@@ -215,7 +215,7 @@ class OptPlot:
     # Plot for objective function of two inputs
     def plotValue(self, val='path_fx', title=None, rescaled=False, ax=None):
         assert len(self.opt_algs) > 0
-        assert val in ['path_fx','step_size']
+        assert val in ['path_fx','step_size','path_diam','path_delta']
 
         # Set up matplotlib
         if ax is None:
@@ -252,6 +252,12 @@ class OptPlot:
                 shift = 0
         elif val == 'step_size':
             y_label = 'Step Size'
+            shift = 0
+        elif val == 'path_diam':
+            y_label = 'Bundle Diameter'
+            shift = 0
+        elif val == 'path_delta':
+            y_label = 'Bundle Delta'
             shift = 0
 
         all_vals += shift
