@@ -9,17 +9,18 @@ Created on Mon Sep  2 10:18:22 2019
 # Uses the prox-bundle method to solve the simple objective starting at (2,3)
 
 #%%
-import sys
-sys.path.append('..')
 import torch
+from torch import tensor, Tensor
+from vis.visualize import OptPlot
 from obj.objective import Objective
 from algs.prox_bundle import ProxBundle
-from algs.torch_alg import Subgradient, Nesterov, LBFGS
-from vis.visualize import OptPlot
+from algs.torch_alg import Subgradient, Nesterov, BFGS
 
 #%%
 # f(x,y) = max(|x|,y^2)
 def simple2D(x):
+    if type(x) != Tensor:  # If non-tensor passed in, no gradient will be used
+        x = tensor(x, dtype=torch.double, requires_grad=False)
     return torch.max(torch.abs(x[0]),0.5 * x[1]**2)
 
 # Create the objective function
@@ -32,7 +33,7 @@ optAlg2 = Subgradient(Simple2D, x0=[10,3], max_iter=50)
 optAlg2.optimize()
 optAlg3 = Nesterov(Simple2D, x0=[10,3], max_iter=50)
 optAlg3.optimize()
-optAlg4 = LBFGS(Simple2D, x0=[10,3], max_iter=50)
+optAlg4 = BFGS(Simple2D, x0=[10,3], max_iter=50)
 optAlg4.optimize()
 
 #%% Plot 

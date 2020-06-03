@@ -95,6 +95,8 @@ class BFGS(TorchAlg):
 
         self.linesearch = linesearch
 
+        hist = min(hist,self.max_iter)
+
         self.lr = lr
         self.hist = hist
         self.name = 'BFGS'
