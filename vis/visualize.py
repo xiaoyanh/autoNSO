@@ -141,7 +141,7 @@ class OptPlot:
         plt.show(block=False)
 
     # Plot for objective function of two inputs
-    def plotPath4D(self):
+    def plotPath4D(self, ax=None):
         assert len(self.opt_algs) > 0
         assert self.x_dim == 3  # 3D domain, 4D with function (unplotted)
 
@@ -174,8 +174,13 @@ class OptPlot:
                 self.x3_min = -1.2 * x3_lim
 
         # Plot objective
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111, projection='3d')
+        if ax is None:
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111, projection='3d')
+            plot_now = True
+        else:
+            plot_now = False
+
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
         ax.view_init(self.axis_rot[0], self.axis_rot[1])
@@ -193,17 +198,24 @@ class OptPlot:
         ax.set_ylim(self.x2_min, self.x2_max)
         ax.set_zlim(self.x3_min, self.x3_max)
 
-        plt.legend()
-        plt.show()
+        if plot_now:
+            plt.legend()
+            plt.show()
+        else:
+            return ax
 
     # Plot for objective function of two inputs
-    def plotValue(self, val='path_fx', title=None, rescaled=False):
+    def plotValue(self, val='path_fx', title=None, rescaled=False, ax=None):
         assert len(self.opt_algs) > 0
         assert val in ['path_fx','step_size']
 
         # Set up matplotlib
-        fig = plt.figure(figsize = (10,10))
-        ax  = fig.add_subplot(111)
+        if ax is None:
+            fig = plt.figure(figsize = (10,10))
+            ax  = fig.add_subplot(111)
+            plot_now = True
+        else:
+            plot_now = False
         
         # Plot optimization path
         palette = itertools.cycle(sns.hls_palette(len(self.opt_algs), l=.3, s=.8))
@@ -245,23 +257,26 @@ class OptPlot:
                     color=next(palette), marker=next(markers),
                     alpha=.4, label=alg.name)
 
-        plt.yscale('log')
-        plt.xlabel('Iteration')
-        plt.ylabel(y_label)
-        plt.xticks(np.round(np.linspace(0,max_iters,10)))
+        ax.set_yscale('log')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel(y_label)
+        ax.set_xticks(np.round(np.linspace(0,max_iters,10)))
 
         if title is not None:
-            plt.title(title)
+            ax.set_title(title)
         # plt.ion()
-        plt.ylim((min_f,max_f))
+        ax.set_ylim((min_f,max_f))
         np.set_printoptions(precision=2)
         ylabs = np.geomspace(min_f,max_f,num=5)
         ylabs_prt = ["{0:0.2e}".format(float(i)) for i in ylabs]
-        plt.yticks(ylabs,ylabs_prt)
-            
-        plt.legend()
-        plt.show()
-        # plt.draw()
+        ax.set_yticks(ylabs,ylabs_prt)
+
+        if plot_now:
+            plt.legend()
+            plt.show()
+            # plt.draw()
+        else:
+            return ax
 
 
     # check that all optimization algorithms have the same objective and inputs

@@ -15,8 +15,8 @@ n = 50
 k = 10
 # obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
-# obj_type = 'Partly Smooth 3D'
-obj_type = 'Convex 3D'
+obj_type = 'Partly Smooth 3D'
+# obj_type = 'Convex 3D'
 # obj_type = 'Strongly Convex'
 m = 25
 # k = 3
@@ -28,7 +28,7 @@ def crit_ps(met):
     # return (met.cur_fx is not None) and (met.cur_fx < 7.967431759861216)
 
 def crit_sc(met):
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-4)
 
 def crit_hh(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
@@ -41,6 +41,7 @@ if obj_type == 'Strongly Convex':
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
     bundle_prune = 'lambda'
+    k = None
     crit = crit_sc
     rank_thres = 1e-2
     pinv_cond = 1e-3
@@ -57,19 +58,21 @@ elif obj_type == 'Partly Smooth':
     bundle_prune = 'svd2'
     # bundle_prune = 'lambda'
     # bundle_prune = 'log_svd'
+    k = None
     crit = crit_ps
     rank_thres = 1e-4
     pinv_cond = 1e-3
     bfgs_lr = 0.01
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  2(x^2 + y^2 + z^2)'
-    objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 25
-    rescaled  = True
+    objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 50
+    rescaled  = False
     n = 3
     crit = crit_sc
-    bundle_prune = 'svd2'
+    bundle_prune = 'duals'
+    k = 3
     rank_thres = 1e-2
-    pinv_cond = 1e-2
+    pinv_cond = 1e-12
     bfgs_lr = 0.1
 elif obj_type == 'Convex 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  x^2'
@@ -77,7 +80,8 @@ elif obj_type == 'Convex 3D':
     rescaled  = False
     n = 3
     crit = crit_c3
-    bundle_prune = 'svd2'
+    bundle_prune = 'duals'
+    k = 3
     rank_thres = 1e-1
     pinv_cond = 1e-5
     bfgs_lr = 0.1
@@ -88,6 +92,7 @@ elif obj_type == 'Half-and-Half':
     rescaled  = True
     crit = crit_hh
     bundle_prune = 'svd2'
+    k = None
     rank_thres = 1e-1
     pinv_cond  = 1e1
     bfgs_lr = 0.1
@@ -102,7 +107,7 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # Run Newton-Bundle
-optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
                        solver='MOSEK', adaptive_bundle=False)
 optAlg0.optimize()
