@@ -129,48 +129,44 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle' and (bundle_prune is not None):
-            assert bundle_prune in ['lambda','svd','log_lambda','log_svd','svd2']
+            assert bundle_prune in ['lambda','svd','log_lambda','log_svd','svd2','duals']
 
             print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
+
+            def active_from_vec(rank,vec):
+                if self.proj_hess:
+                    rank = min(rank,self.x_dim)
+                return np.argsort(vec)[-rank:]
+
+            def geo_gap(vec,exclude_first=True):
+                sorted = np.argsort(abs(np.diff(np.log10(np.sort(vec)[::-1]))))
+                ind = -2 if exclude_first else -1
+                return sorted[ind] + 1
 
             if bundle_prune == 'svd':
                 sig = np.linalg.svd(self.dfS,compute_uv=False)
                 rank = int(1 * sum(sig > max(sig)*self.rank_thres))
-                if self.proj_hess:
-                    rank = min(rank,self.x_dim)
-                active = np.argsort(warm_start['duals'])[-rank:]
+                active = active_from_vec(rank,warm_start['duals'])
             elif bundle_prune == 'svd2':
                 sig = np.linalg.svd(np.concatenate((self.dfS, np.ones(self.k)[:, np.newaxis]), axis=1),compute_uv=False)
                 rank = int(1 * sum(sig > max(sig) * self.rank_thres))
-                if self.proj_hess:
-                    rank = min(rank, self.x_dim)
-                active = np.argsort(warm_start['duals'])[-rank:]
+                active = active_from_vec(rank,warm_start['duals'])
+            elif bundle_prune == 'duals':
+                assert k is not None
+                rank = k
+                active = active_from_vec(rank,warm_start['duals'])
             elif bundle_prune == 'lambda':
                 _, tmp_lam = get_lam(self.dfS, solver=self.solver)
                 rank = sum(tmp_lam > self.rank_thres * max(tmp_lam))
-                if self.proj_hess:
-                    rank = min(rank,self.x_dim)
-                active = np.argsort(tmp_lam)[-rank:]
+                active = active_from_vec(rank, tmp_lam)
             elif bundle_prune == 'log_lambda':
                 _, tmp_lam = get_lam(self.dfS, solver=self.solver)
-                sorted = np.argsort(abs(np.diff(np.log10(np.sort(tmp_lam)[::-1]))))
-                if sorted[-1]==0: # Exclude the first one
-                    rank = sorted[-2] + 1
-                else:
-                    rank = sorted[-1] + 1
-                if self.proj_hess:
-                    rank = min(rank, self.x_dim)
-                active = np.argsort(tmp_lam)[-rank:]
+                rank   = geo_gap(tmp_lam, exclude_first=True)
+                active = active_from_vec(rank, tmp_lam)
             elif bundle_prune == 'log_svd':
                 sig = np.linalg.svd(self.dfS,compute_uv=False)
-                sorted = np.argsort(abs(np.diff(np.log10(np.sort(sig)[::-1]))))
-                if sorted[-1]==0: # Exclude the first one
-                    rank = sorted[-2] + 1
-                else:
-                    rank = sorted[-1] + 1
-                if self.proj_hess:
-                    rank = min(rank, self.x_dim)
-                active = np.argsort(warm_start['duals'])[-rank:]
+                rank   = geo_gap(sig, exclude_first=True)
+                active = active_from_vec(rank,warm_start['duals'])
 
             self.S     = self.S[active, :]
             self.fS    = self.fS[active]
