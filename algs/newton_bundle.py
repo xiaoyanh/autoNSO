@@ -52,10 +52,11 @@ osqp_params = {"eps_abs":1e-10,
                'alpha':1.1}
 
 cvx_params = {'max_iters' : int(1e3),
-                'abstol'  : 1e-9,
-                'reltol'  : 1e-8,
-                'feastol' : 1e-9,
-                'kktsolver' : 'robust',}
+                # 'abstol'  : 1e-9,
+                # 'reltol'  : 1e-8,
+                # 'feastol' : 1e-9,
+                'kktsolver' : 'robust',
+              }
 
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
@@ -128,7 +129,7 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle' and (bundle_prune is not None):
-            assert bundle_prune in ['lambda','svd','log_lambda','log_svd']
+            assert bundle_prune in ['lambda','svd','log_lambda','log_svd','svd2']
 
             print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
 
@@ -137,6 +138,12 @@ class NewtonBundle(OptAlg):
                 rank = int(1 * sum(sig > max(sig)*self.rank_thres))
                 if self.proj_hess:
                     rank = min(rank,self.x_dim)
+                active = np.argsort(warm_start['duals'])[-rank:]
+            elif bundle_prune == 'svd2':
+                sig = np.linalg.svd(np.concatenate((self.dfS, np.ones(self.k)[:, np.newaxis]), axis=1),compute_uv=False)
+                rank = int(1 * sum(sig > max(sig) * self.rank_thres))
+                if self.proj_hess:
+                    rank = min(rank, self.x_dim)
                 active = np.argsort(warm_start['duals'])[-rank:]
             elif bundle_prune == 'lambda':
                 _, tmp_lam = get_lam(self.dfS, solver=self.solver)
@@ -314,35 +321,39 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
         dfS_[sub_ind] = new_df
     Q = dfS_ @ dfS_.T
 
-    lam   = cp.Variable(k)
+    if solver == 'quadprog':
+        Q *= 2
+        C = np.concatenate((np.ones(k)[np.newaxis],np.eye(k)))
+        b = np.zeros(k+1)
+        b[0] = 1
+        prob = quadprog.solve_qp(Q,np.zeros(k),C.T,b,1)
 
-    constraints = [cp.sum(lam) == 1.0]
-    constraints += [lam >= 0.0]
+        return np.sqrt(prob[1]), prob[0]
+    else: # cvxpy
+        lam = cp.Variable(k)
+        constraints = [cp.sum(lam) == 1.0]
+        constraints += [lam >= 0.0]
 
-    # Find lambda (warm start with previous iteration)
-    prob = cp.Problem(cp.Minimize(cp.quad_form(lam, Q)), constraints)
+        # Find lambda (warm start with previous iteration)
+        prob = cp.Problem(cp.Minimize(cp.quad_form(lam, Q)), constraints)
 
-    try:
-        if solver == 'MOSEK':
-            prob.solve(solver=cp.MOSEK, mosek_params=m_params)
-        elif solver == 'GUROBI':
-            prob.solve(solver=cp.GUROBI,**g_params)
-        elif solver == 'OSQP':
-            prob.solve(solver=cp.OSQP, **osqp_params)
-        elif solver == 'CVXOPT':
-            prob.solve(solver=cp.CVXOPT, **cvx_params)
-        elif solver == 'quadprog':
-            pass
-    except:
-        if solver == 'MOSEK':
-            prob.solve(solver=cp.MOSEK, mosek_params=m_params, verbose=True)
-        elif solver == 'GUROBI':
-            prob.solve(solver=cp.GUROBI,**g_params, verbose=True)
-        elif solver == 'OSQP':
-            prob.solve(solver=cp.OSQP, **osqp_params, verbose=True)
-        elif solver == 'CVXOPT':
-            prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
-        elif solver == 'quadprog':
-            pass
+        try:
+            if solver == 'MOSEK':
+                prob.solve(solver=cp.MOSEK, mosek_params=m_params)
+            elif solver == 'GUROBI':
+                prob.solve(solver=cp.GUROBI,**g_params)
+            elif solver == 'OSQP':
+                prob.solve(solver=cp.OSQP, **osqp_params)
+            elif solver == 'CVXOPT':
+                prob.solve(solver=cp.CVXOPT, **cvx_params)
+        except:
+            if solver == 'MOSEK':
+                prob.solve(solver=cp.MOSEK, mosek_params=m_params, verbose=True)
+            elif solver == 'GUROBI':
+                prob.solve(solver=cp.GUROBI,**g_params, verbose=True)
+            elif solver == 'OSQP':
+                prob.solve(solver=cp.OSQP, **osqp_params, verbose=True)
+            elif solver == 'CVXOPT':
+                prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
 
-    return np.sqrt(prob.value), lam.value.copy()
+        return np.sqrt(prob.value), lam.value.copy()

@@ -15,6 +15,14 @@ def partlysmooth3D(x):
     return sqrt((x[0]**2 - x[1])**2 + x[2]**2) + 2*(x[0]**2 + x[1]**2 + x[2]**2)
 PartlySmooth3D = Objective(partlysmooth3D)
 
+def convex3D(x):
+    if type(x) != Tensor:  # If non-tensor passed in, no gradient will be used
+        x = tensor(x, dtype=torch.double, requires_grad=False)
+    assert len(x) == 3
+    return sqrt((x[0]**2 - x[1])**2 + x[2]**2) + x[0]**2
+Convex3D = Objective(convex3D)
+
+
 # Below are example objective functions from Lewis-Wylie 2019 (https://arxiv.org/abs/1907.11742)
 
 # Creates a strongly convex objective function for particular n and k
