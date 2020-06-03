@@ -12,6 +12,7 @@ import seaborn as sns
 from algs.optAlg import OptAlg
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+from mpl_toolkits.mplot3d import Axes3D
 
 from IPython import embed
 
@@ -63,13 +64,13 @@ class OptPlot:
         # After checking set the x_dim and obj_func to be the common one
         self.do_check()
         
-    def plotPath(self):
+    def plotPath(self,**kwargs):
         assert self.x_dim is not None
         
         if self.x_dim == 2:
-            self.plotPath3D()
+            self.plotPath3D(**kwargs)
         elif self.x_dim == 3:
-            self.plotPath4D()
+            self.plotPath4D(**kwargs)
         else:
             raise Exception('Plotting for this type of objective not implemented yet')
     
@@ -80,7 +81,7 @@ class OptPlot:
         assert self.x_dim == 1 # 1D domain for 2D plot
     
     # Plot for objective function of two inputs
-    def plotPath3D(self):
+    def plotPath3D(self, ax = None):
         assert len(self.opt_algs) > 0
         assert self.x_dim == 2 # 2D domain for 3D plot
         
@@ -120,9 +121,15 @@ class OptPlot:
         if np.nanmin(fx_grid) < 0:
             fx_grid -= np.nanmin(fx_grid)
 
-        #Plot objective
-        fig = plt.figure(figsize = (10,10))
-        ax  = fig.add_subplot(111, projection='3d')
+        # Plot objective
+        if ax is None:
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111, projection='3d')
+            plot_now = True
+        else:
+            assert isinstance(ax, Axes3D)
+            plot_now = False
+
         ax.plot_wireframe(x1_grid,x2_grid,fx_grid, rstride=5, cstride=5, alpha=0.3, linewidths=0.1, colors='black')
         ax.plot_surface(x1_grid,x2_grid,fx_grid,rstride = 5, cstride = 5, cmap = 'jet', alpha = .3, edgecolor = 'none' )
         ax.set_xlabel('x1')
@@ -179,6 +186,7 @@ class OptPlot:
             ax = fig.add_subplot(111, projection='3d')
             plot_now = True
         else:
+            assert isinstance(ax, Axes3D)
             plot_now = False
 
         ax.set_xlabel('x1')
