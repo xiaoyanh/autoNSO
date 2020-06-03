@@ -13,10 +13,10 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth,halfandhalf, P
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
+# obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 3D'
-# obj_type = 'Convex 3D'
+obj_type = 'Convex 3D'
 # obj_type = 'Strongly Convex'
 m = 25
 # k = 3
@@ -73,14 +73,14 @@ elif obj_type == 'Partly Smooth 3D':
     bfgs_lr = 0.1
 elif obj_type == 'Convex 3D':
     titl = obj_type + ': sqrt( (x^2  - y)^2 + z^2 )  +  x^2'
-    objective = Convex3D; mu_sz=1e1; beta_sz=1e-5; iters = 20
-    rescaled  = True
+    objective = Convex3D; mu_sz=1e1; beta_sz=1e-5; iters = 75
+    rescaled  = False
     n = 3
     crit = crit_c3
     bundle_prune = 'svd2'
     rank_thres = 1e-1
-    pinv_cond = 1e-3
-    bfgs_lr = 0.01
+    pinv_cond = 1e-5
+    bfgs_lr = 0.1
 elif obj_type == 'Half-and-Half':
     n = 4
     titl = obj_type + ': n={}'.format(n)
@@ -102,11 +102,11 @@ optAlg2.optimize()
 alg_list += [optAlg2]
 
 # Run Newton-Bundle
-# optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
-#                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-#                        solver='MOSEK', adaptive_bundle=False)
-# optAlg0.optimize()
-# alg_list += [optAlg0]
+optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=None, warm_start=optAlg2.saved_bundle, proj_hess=False,
+                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
+                       solver='MOSEK', adaptive_bundle=False)
+optAlg0.optimize()
+alg_list += [optAlg0]
 
 optAlg1 = BFGS(objective, x0=x0, max_iter=iters, hist=iters, lr=bfgs_lr, linesearch='lewis_overton',
                 ls_params={'c1':0, 'c2':0.5, 'max_ls':1e3},
