@@ -303,7 +303,7 @@ class NewtonBundle(OptAlg):
 
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
-        self.name = 'NewtonBundle (bund_sz=' + str(self.k)
+        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'

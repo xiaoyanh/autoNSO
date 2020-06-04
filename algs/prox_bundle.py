@@ -43,7 +43,7 @@ class ProxBundle(OptAlg):
         self.mu = mu
         self.null_k = null_k
         self.name = 'ProxBundle'
-        self.name += ' (mu=' + str(self.mu) + ',null_k=' + str(self.null_k) + ')'
+        self.name += ' (mu=' + str(self.mu) + ',null-k=' + str(self.null_k) + ')'
         self.prune = prune
         self.active_thres = active_thres
         self.solver = solver

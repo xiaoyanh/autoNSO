@@ -9,10 +9,13 @@ import torch
 import itertools
 import numpy as np
 import seaborn as sns
+import matplotlib
 from algs.optAlg import OptAlg
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
+
+matplotlib.rcParams['text.usetex'] = True
 
 from IPython import embed
 
@@ -183,9 +186,16 @@ class OptPlot:
             return ax
 
     # Plot for objective function of two inputs
-    def plotValue(self, val='path_fx', title=None, rescaled=False, ax=None, rolling_min=False):
+    def plotValue(self, val_list=['path_fx'], title=None, rescaled=False, ax=None, rolling_min=['path_fx']):
         assert len(self.opt_algs) > 0
-        assert val in ['path_fx','step_size','path_diam','path_delta']
+        val_list = [val_list] if isinstance(val_list,str) else val_list
+        rolling_min = [rolling_min] if isinstance(val_list, str) else rolling_min
+        assert np.all([val in ['path_fx', 'step_size', 'path_diam', 'path_delta'] for val in val_list])
+
+        lab_dict = {'path_fx': r"$f(x)$: ",
+                    'step_size': r"$|x_k - x_{k+1}|$: ",
+                    'path_diam': r"diam$(S)$: ",
+                    'path_delta': r"$\Theta(S)$: "}
 
         # Set up matplotlib
         if ax is None:
@@ -201,55 +211,57 @@ class OptPlot:
 
         # Count iterations and find max/min
         max_iters = float('-inf')
-        all_vals = np.array([])
-        for alg in self.opt_algs:
+        max_f = float('-inf')
+        min_f = float('inf')
 
-            if val == 'step_size':
-                alg.step_size = np.diff(alg.path_x,axis=0)
-                alg.step_size = np.linalg.norm(alg.step_size,axis=1)
-                alg.step_size = np.insert(alg.step_size, 0, np.nan, axis=0)
+        for val in val_list:
 
-            if alg.total_iter > max_iters:
-                max_iters = alg.total_iter
-            all_vals = np.concatenate((all_vals,getattr(alg,val)))
+            all_vals = np.array([])
+            for alg in self.opt_algs:
+                if not hasattr(alg, val):
+                    continue
 
-        if val == 'path_fx':
-            if (min(all_vals) < 0) or rescaled:
-                y_label = 'Shifted Objective Value (log-scale)'
+                if val == 'step_size':
+                    alg.step_size = np.diff(alg.path_x,axis=0)
+                    alg.step_size = np.linalg.norm(alg.step_size,axis=1)
+                    alg.step_size = np.insert(alg.step_size, 0, np.nan, axis=0)
+
+                if alg.total_iter > max_iters:
+                    max_iters = alg.total_iter
+                all_vals = np.concatenate((all_vals,getattr(alg,val)))
+
+            shift = 0
+            if val == 'path_fx' and ((min(all_vals) < 0) or rescaled):
                 shift  =  -np.nanmin(all_vals)
-            else:
-                y_label = 'Objective Value (log-scale)'
-                shift = 0
-        elif val == 'step_size':
-            y_label = 'Step Size'
-            shift = 0
-        elif val == 'path_diam':
-            y_label = 'Bundle Diameter'
-            shift = 0
-        elif val == 'path_delta':
-            y_label = 'Bundle Delta'
-            shift = 0
 
-        all_vals += shift
-        max_f = np.nanmax(all_vals)
-        min_f = np.nanmin(all_vals[all_vals != 0])
+            prefix = ''
+            suffix = ''
+            if abs(shift) > 0:
+                prefix = 'Shifted ' + prefix
 
-        for alg in self.opt_algs:
-            y = getattr(alg,val) + shift
-            y[y==0] = min_f # Just set all 0's to second smallest
+            if val in rolling_min:
+                suffix += ' (cumulative min)'
 
-            if rolling_min:
-                y = np.fmin.accumulate(y)
+            all_vals += shift
+            max_f = max(np.nanmax(all_vals),max_f)
+            min_f = min(np.nanmin(all_vals[all_vals != 0]),min_f)
 
-            ax.plot(np.arange(alg.total_iter), y,
-                    color=next(palette), marker=next(markers),
-                    alpha=.4, label=alg.name)
+            for alg in self.opt_algs:
+                if not hasattr(alg, val):
+                    continue
+                y = getattr(alg,val) + shift
+                y[y==0] = min_f # Just set all 0's to second smallest
+
+                if rolling_min:
+                    y = np.fmin.accumulate(y)
+
+                ax.plot(np.arange(alg.total_iter), y,
+                        color=next(palette), marker=next(markers), alpha=.4,
+                        label= prefix + lab_dict[val] + alg.name + suffix)
 
         ax.set_yscale('log')
         ax.set_xlabel('Iteration')
-        if rolling_min:
-            y_label += ' (Cumulative Min)'
-        ax.set_ylabel(y_label)
+        ax.set_ylabel('Value')
         ax.set_xticks(np.round(np.linspace(0,max_iters,10)))
 
         if title is not None:
@@ -259,7 +271,8 @@ class OptPlot:
         np.set_printoptions(precision=2)
         ylabs = np.geomspace(min_f,max_f,num=5)
         ylabs_prt = ["{0:0.2e}".format(float(i)) for i in ylabs]
-        ax.set_yticks(ylabs,ylabs_prt)
+        ax.set_yticks(ylabs)
+        ax.set_yticklabels(ylabs_prt)
 
         if plot_now:
             plt.legend()
