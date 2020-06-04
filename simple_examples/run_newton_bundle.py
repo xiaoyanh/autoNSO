@@ -62,7 +62,7 @@ elif obj_type == 'Partly Smooth':
     crit = crit_ps
     rank_thres = 1e-4
     # pinv_cond = 1e-3 # svd init
-    pinv_cond = 1e-8 # duals init w/ 20
+    pinv_cond = 1e-12 # duals init w/ 20
     bfgs_lr = 0.01
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  2(x^2 + y^2 + z^2)$'
