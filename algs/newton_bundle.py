@@ -10,6 +10,7 @@ from utils.pinv import pinv2
 # from scipy.linalg import pinv2
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
+from utils.diameter import get_diam
 from joblib import Parallel, delayed
 
 tol = 1e-10
@@ -263,7 +264,8 @@ class NewtonBundle(OptAlg):
 
     def update_params(self):
 
-        self.cur_diam = max(np.linalg.norm(self.S, axis=1))
+        self.cur_diam = np.array(get_diam(self.dfS))
+        print(self.cur_diam,flush=True)
 
         if self.path_x is not None:
             self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))

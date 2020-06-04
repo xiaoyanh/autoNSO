@@ -13,11 +13,11 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth,halfandhalf, P
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
+# obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 3D'
 # obj_type = 'Convex 3D'
-# obj_type = 'Strongly Convex'
+obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -28,6 +28,9 @@ def crit_ps(met):
     # return (met.cur_fx is not None) and (met.cur_fx < 7.967431759861216)
 
 def crit_sc(met):
+    return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+
+def crit_ps3(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1e-4)
 
 def crit_hh(met):
@@ -37,7 +40,7 @@ def crit_c3(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1e-1)
 
 if obj_type == 'Strongly Convex':
-    titl = obj_type + ': R^{}, max over {} quartics'.format(n, k)
+    titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, k)
     objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
     rescaled = False
     bundle_prune = 'lambda'
@@ -47,7 +50,7 @@ if obj_type == 'Strongly Convex':
     pinv_cond = 1e-3
     bfgs_lr = 0.1
 elif obj_type == 'Non-Convex':
-    titl = obj_type + ': R^{}, sum over {} |quartics|'.format(n, k)
+    titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, k)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
     rescaled  = True
     bfgs_lr = 0.1
@@ -58,18 +61,17 @@ elif obj_type == 'Partly Smooth':
     bundle_prune = 'duals'
     # bundle_prune = 'lambda'
     # bundle_prune = 'log_svd'
-    k = 20
+    k = 51
     crit = crit_ps
     rank_thres = 1e-4
-    # pinv_cond = 1e-3 # svd init
-    pinv_cond = 1e-12 # duals init w/ 20
+    pinv_cond = 1e-3
     bfgs_lr = 0.01
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  2(x^2 + y^2 + z^2)$'
     objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 50
     rescaled  = False
     n = 3
-    crit = crit_sc
+    crit = crit_ps3
     bundle_prune = 'duals'
     k = 3
     rank_thres = 1e-2
