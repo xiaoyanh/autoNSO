@@ -183,7 +183,7 @@ class OptPlot:
             return ax
 
     # Plot for objective function of two inputs
-    def plotValue(self, val='path_fx', title=None, rescaled=False, ax=None):
+    def plotValue(self, val='path_fx', title=None, rescaled=False, ax=None, rolling_min=False):
         assert len(self.opt_algs) > 0
         assert val in ['path_fx','step_size','path_diam','path_delta']
 
@@ -237,12 +237,18 @@ class OptPlot:
         for alg in self.opt_algs:
             y = getattr(alg,val) + shift
             y[y==0] = min_f # Just set all 0's to second smallest
+
+            if rolling_min:
+                y = np.fmin.accumulate(y)
+
             ax.plot(np.arange(alg.total_iter), y,
                     color=next(palette), marker=next(markers),
                     alpha=.4, label=alg.name)
 
         ax.set_yscale('log')
         ax.set_xlabel('Iteration')
+        if rolling_min:
+            y_label += ' (Cumulative Min)'
         ax.set_ylabel(y_label)
         ax.set_xticks(np.round(np.linspace(0,max_iters,10)))
 

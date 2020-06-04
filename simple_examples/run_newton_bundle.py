@@ -129,7 +129,7 @@ opt_plot = OptPlot(opt_algs=alg_list, resolution=100,
 # if n in [2,3]:
 #     opt_plot.plotPath3D(domain_sz=n)
 
-opt_plot.plotValue(title=titl, rescaled=rescaled)
+opt_plot.plotValue(title=titl, rescaled=rescaled, rolling_min=True)
 
 
 
