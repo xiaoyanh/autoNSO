@@ -8,6 +8,13 @@ def simple2D(x):
     return max(abs(x[0]),(0.5 * x[1]**2))
 Simple2D = Objective(simple2D)
 
+def partlysmooth2D(x):
+    if type(x) != Tensor:  # If non-tensor passed in, no gradient will be used
+        x = tensor(x, dtype=torch.double, requires_grad=False)
+    assert len(x) == 2
+    return max(3*x[0]**2+x[1]**2-x[1],x[0]**2+x[1]**2+x[1])
+PartlySmooth2D = Objective(partlysmooth2D)
+
 def partlysmooth3D(x):
     if type(x) != Tensor:  # If non-tensor passed in, no gradient will be used
         x = tensor(x, dtype=torch.double, requires_grad=False)

@@ -8,16 +8,17 @@ from algs.torch_alg import BFGS
 from vis.visualize import OptPlot
 from algs.prox_bundle import ProxBundle
 from algs.newton_bundle import NewtonBundle
-from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth,halfandhalf, PartlySmooth3D, Convex3D
+from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, halfandhalf, PartlySmooth2D, PartlySmooth3D, Convex3D
 
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-# obj_type = 'Partly Smooth'
+obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
+# obj_type = 'Partly Smooth 2D'
 # obj_type = 'Partly Smooth 3D'
 # obj_type = 'Convex 3D'
-obj_type = 'Strongly Convex'
+# obj_type = 'Strongly Convex'
 m = 25
 # k = 3
 # n = 2
@@ -61,9 +62,9 @@ elif obj_type == 'Partly Smooth':
     bundle_prune = 'duals'
     # bundle_prune = 'lambda'
     # bundle_prune = 'log_svd'
-    k = 51
+    k = 20
     crit = crit_ps
-    rank_thres = 1e-4
+    rank_thres = 1e-3
     pinv_cond = 1e-3
     bfgs_lr = 0.01
 elif obj_type == 'Partly Smooth 3D':
@@ -74,6 +75,17 @@ elif obj_type == 'Partly Smooth 3D':
     crit = crit_ps3
     bundle_prune = 'duals'
     k = 3
+    rank_thres = 1e-2
+    pinv_cond = 1e-12
+    bfgs_lr = 0.1
+elif obj_type == 'Partly Smooth 2D':
+    titl = obj_type + r': $\max(3x^2 + y^2 - y , x^2 + y^2 + y)$'
+    objective = PartlySmooth2D; mu_sz=1e1; beta_sz=1e-5; iters = 50
+    rescaled  = False
+    n = 2
+    crit = crit_ps3
+    bundle_prune = 'duals'
+    k = 2
     rank_thres = 1e-2
     pinv_cond = 1e-12
     bfgs_lr = 0.1
