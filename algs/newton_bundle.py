@@ -62,7 +62,7 @@ cvx_params = {'max_iters' : int(1e3),
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
-                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=1e-10, random_sz=1e-1, adaptive_bundle=False,
+                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1, adaptive_bundle=False,
                  solver='MOSEK', **kwargs):
         objective.oracle_output='hess+'
 
