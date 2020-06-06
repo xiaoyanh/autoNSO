@@ -12,17 +12,14 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, halfandhalf, 
 
 # Run newton-bundle optimization algorithm
 n = 50
-k = 10
+m = 25
+
 obj_type = 'Partly Smooth'
 # obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 2D'
 # obj_type = 'Partly Smooth 3D'
 # obj_type = 'Convex 3D'
 # obj_type = 'Strongly Convex'
-m = 25
-# k = 3
-# n = 2
-
 # Criteria for switching to newton-bundle
 def crit_ps(met):
     return (met.fx_step > 1e-14) and (abs(met.fx_step) < 1e-7)
@@ -44,24 +41,21 @@ proj_hess = False
 pinv_cond = 1e-16
 rank_thres = None
 bfgs_lr = 0.1
+rescaled  = False
+bundle_prune = 'duals'
 if obj_type == 'Strongly Convex':
-    titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, k)
-    objective = stronglyconvex(n=n,k=k,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
-    rescaled = False
-    bundle_prune = 'lambda'
-    k = None
+    titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, 10)
+    objective = stronglyconvex(n=n,k=10,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
+    k = 10
     crit = crit_sc
 elif obj_type == 'Non-Convex':
-    titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, k)
+    titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, 10)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
     rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig-max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
     rescaled  = True
-    bundle_prune = 'duals'
-    # bundle_prune = 'lambda'
-    # bundle_prune = 'log_svd'
     k = 20
     crit = crit_ps
     # pinv_cond = 1e-3
@@ -70,37 +64,27 @@ elif obj_type == 'Partly Smooth':
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  2(x^2 + y^2 + z^2)$'
     objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 50
-    rescaled  = False
     n = 3
     crit = crit_ps3
-    bundle_prune = 'duals'
     k = 3
 elif obj_type == 'Partly Smooth 2D':
     titl = obj_type + r': $\max(3x^2 + y^2 - y , x^2 + y^2 + y)$'
     objective = PartlySmooth2D; mu_sz=1e1; beta_sz=1e-5; iters = 50
-    rescaled  = False
     n = 2
     crit = crit_ps3
-    bundle_prune = 'duals'
     k = 2
 elif obj_type == 'Convex 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  x^2$'
     objective = Convex3D; mu_sz=1e1; beta_sz=1e-5; iters = 75
-    rescaled  = False
     n = 3
     crit = crit_c3
-    bundle_prune = 'duals'
     k = 3
     bfgs_lr = 0.1
 elif obj_type == 'Half-and-Half':
     n = 4
     titl = obj_type + ': n={}'.format(n)
     objective = halfandhalf(n=n); mu_sz=1; beta_sz=1e-5; iters = 100
-    rescaled  = True
     crit = crit_hh
-    # bundle_prune = 'svd2'
-    bundle_prune = 'duals'
-    # k = None
     k = 2
 
 # x0 = np.random.randn(n)
