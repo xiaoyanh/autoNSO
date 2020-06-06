@@ -44,6 +44,7 @@ rank_thres = None
 bfgs_lr = 0.1
 rescaled  = False
 bundle_prune = 'duals'
+adaptive_bundle = False
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, 10)
     objective = stronglyconvex(n=n,k=10,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
@@ -63,6 +64,7 @@ elif obj_type == 'Partly Smooth': # This is the only case that doesn't work
     # pinv_cond = 1e-3
     bfgs_lr = 0.01
     proj_hess = True
+    adaptive_bundle = True
 elif obj_type == 'Partly Smooth 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  2(x^2 + y^2 + z^2)$'
     objective = PartlySmooth3D; mu_sz=1e1; beta_sz=1e-5; iters = 50
@@ -107,7 +109,7 @@ alg_list += [optAlg2]
 
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver='MOSEK', adaptive_bundle=False)
+                       solver='MOSEK', adaptive_bundle=adaptive_bundle)
 optAlg0.optimize()
 alg_list += [optAlg0]
 
