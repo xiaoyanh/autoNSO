@@ -190,12 +190,13 @@ class OptPlot:
         assert len(self.opt_algs) > 0
         val_list = [val_list] if isinstance(val_list,str) else val_list
         rolling_min = [rolling_min] if isinstance(val_list, str) else rolling_min
-        assert np.all([val in ['path_fx', 'step_size', 'path_diam', 'path_delta'] for val in val_list])
+        assert np.all([val in ['path_fx', 'step_size', 'path_diam', 'path_delta', 'path_vio'] for val in val_list])
 
         lab_dict = {'path_fx': r"$f(x)$: ",
                     'step_size': r"$|x_k - x_{k+1}|$: ",
                     'path_diam': r"diam$(S)$: ",
-                    'path_delta': r"$\Theta(S)$: "}
+                    'path_delta': r"$\Theta(S)$: ",
+                    'path_vio': r"$Vio.=|Ax - b|: "}
 
         # Set up matplotlib
         if ax is None:

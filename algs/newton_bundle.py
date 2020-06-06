@@ -109,6 +109,7 @@ class NewtonBundle(OptAlg):
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
+            # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
 
         self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
 
@@ -203,10 +204,8 @@ class NewtonBundle(OptAlg):
             xu = pinv2(A, rcond=self.pinv_cond) @ b
             self.cur_x = U@xu + p
         else:
-            hess = self.d2fS
-
             A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
-            top_left = np.einsum('s,sij->ij',self.lam_cur,hess)
+            top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
 
             A[0:self.x_dim,0:self.x_dim]=top_left
             A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
@@ -214,12 +213,13 @@ class NewtonBundle(OptAlg):
             A[(self.x_dim+1):, 0:self.x_dim]               = G
 
             b =  np.zeros(self.x_dim+self.k)
-            b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,hess,self.S)
+            b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,self.d2fS,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
 
-            # self.cur_x = (pinv2(A, rcond=self.pinv_cond) @ b)[0:self.x_dim]
             self.cur_x = (pinv2(A, cond=self.pinv_cond) @ b)[0:self.x_dim]
+
+        # self.vio = np.linalg.norm(A @ self.cur_x - b)
 
         # optimality check
         # self.opt_check(A, b)
@@ -273,11 +273,13 @@ class NewtonBundle(OptAlg):
             self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
             self.path_diam = np.concatenate((self.path_diam, self.cur_diam[np.newaxis]))
             self.path_delta = np.concatenate((self.path_delta, self.cur_delta[np.newaxis]))
+            # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]
             self.path_diam = self.cur_diam[np.newaxis]
             self.path_delta = self.cur_delta[np.newaxis]
+            # self.path_vio = self.cur_vio[np.newaxis]
 
         # Update paths and bundle constraints
         self.cur_iter += 1
