@@ -22,7 +22,8 @@ obj_type = 'Partly Smooth'
 # obj_type = 'Strongly Convex'
 # Criteria for switching to newton-bundle
 def crit_ps(met):
-    return (met.fx_step > 1e-14) and (abs(met.fx_step) < 1e-7)
+    # return (met.fx_step > 1e-14) and (abs(met.fx_step) < 1e-8)
+    return (met.fx_step > 1e-14) and (abs(met.fx_step) < 1e-6)
     # return (met.cur_fx is not None) and (met.cur_fx < 7.967431759861216)
 
 def crit_sc(met):
@@ -54,9 +55,10 @@ elif obj_type == 'Non-Convex':
     rescaled  = True
 elif obj_type == 'Partly Smooth':
     titl = obj_type + ': eig-max sum of {}, {}x{} matrices'.format(n, m, m)
-    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 350
+    objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
-    k = 20
+    k = 21
+    # k = 51
     crit = crit_ps
     # pinv_cond = 1e-3
     bfgs_lr = 0.01
