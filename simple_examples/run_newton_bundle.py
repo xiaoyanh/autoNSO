@@ -53,7 +53,7 @@ elif obj_type == 'Non-Convex':
     titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, 10)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
     rescaled  = True
-elif obj_type == 'Partly Smooth':
+elif obj_type == 'Partly Smooth': # This is the only case that doesn't work
     titl = obj_type + ': eig-max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
