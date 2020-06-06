@@ -13,8 +13,8 @@ from obj.obj_funcs import stronglyconvex, nonconvex, partlysmooth, halfandhalf, 
 # Run newton-bundle optimization algorithm
 n = 50
 k = 10
-obj_type = 'Partly Smooth'
-# obj_type = 'Half-and-Half'
+# obj_type = 'Partly Smooth'
+obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 2D'
 # obj_type = 'Partly Smooth 3D'
 # obj_type = 'Convex 3D'
@@ -38,7 +38,7 @@ def crit_hh(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1e-6)
 
 def crit_c3(met):
-    return (met.cur_fx is not None) and (met.cur_fx < 1e-1)
+    return (met.cur_fx is not None) and (met.cur_fx < 1)
 
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, k)
@@ -48,7 +48,7 @@ if obj_type == 'Strongly Convex':
     k = None
     crit = crit_sc
     rank_thres = 1e-2
-    pinv_cond = 1e-3
+    pinv_cond = 1e-16
     bfgs_lr = 0.1
 elif obj_type == 'Non-Convex':
     titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, k)
@@ -76,7 +76,7 @@ elif obj_type == 'Partly Smooth 3D':
     bundle_prune = 'duals'
     k = 3
     rank_thres = 1e-2
-    pinv_cond = 1e-12
+    pinv_cond = 1e-16
     bfgs_lr = 0.1
 elif obj_type == 'Partly Smooth 2D':
     titl = obj_type + r': $\max(3x^2 + y^2 - y , x^2 + y^2 + y)$'
@@ -87,7 +87,7 @@ elif obj_type == 'Partly Smooth 2D':
     bundle_prune = 'duals'
     k = 2
     rank_thres = 1e-2
-    pinv_cond = 1e-12
+    pinv_cond = 1e-16
     bfgs_lr = 0.1
 elif obj_type == 'Convex 3D':
     titl = obj_type + r': $\sqrt{ (x^2  - y)^2 + z^2 }  +  x^2$'
@@ -98,18 +98,21 @@ elif obj_type == 'Convex 3D':
     bundle_prune = 'duals'
     k = 3
     rank_thres = 1e-1
-    pinv_cond = 1e-5
+    pinv_cond = 1e-16
     bfgs_lr = 0.1
 elif obj_type == 'Half-and-Half':
     n = 4
     titl = obj_type + ': n={}'.format(n)
-    objective = halfandhalf(n=n); mu_sz=1; beta_sz=1e-5; iters = 50
+    objective = halfandhalf(n=n); mu_sz=1; beta_sz=1e-5; iters = 100
     rescaled  = True
     crit = crit_hh
-    bundle_prune = 'svd2'
-    k = None
+    # bundle_prune = 'svd2'
+    bundle_prune = 'duals'
+    # k = None
+    k = 2
     rank_thres = 1e-1
-    pinv_cond  = 1e1
+    # pinv_cond  = 1e1
+    pinv_cond = 1e-16
     bfgs_lr = 0.1
 
 # x0 = np.random.randn(n)
