@@ -39,7 +39,7 @@ def crit_c3(met):
     return (met.cur_fx is not None) and (met.cur_fx < 1)
 
 proj_hess = False
-pinv_cond = 1e-16
+pinv_cond = 1e-16 # Solve linear system exactly
 rank_thres = None
 bfgs_lr = 0.1
 rescaled  = False
