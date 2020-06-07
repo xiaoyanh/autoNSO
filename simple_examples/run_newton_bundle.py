@@ -58,7 +58,7 @@ elif obj_type == 'Partly Smooth': # This is the only case that doesn't work
     titl = obj_type + ': eig-max sum of {}, {}x{} matrices'.format(n, m, m)
     objective = partlysmooth(n=n,m=m,oracle_output='both'); mu_sz=1e1; beta_sz=1e-5; iters = 300
     rescaled  = True
-    k = 21
+    k = 20
     # k = 51
     crit = crit_ps
     # pinv_cond = 1e-3

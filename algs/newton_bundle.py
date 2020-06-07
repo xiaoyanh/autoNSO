@@ -233,11 +233,11 @@ class NewtonBundle(OptAlg):
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
+
         jobs_delta = [jobs[i][0] for i in range(self.k)]
-        # jobs_delta = [np.linalg.norm(jobs[i][1]@self.dfS) for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
 
-        if jobs[k_sub][0] > self.cur_delta and self.adaptive_bundle:
+        if jobs_delta[k_sub] > self.cur_delta and self.adaptive_bundle:
             self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
             self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
             self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
@@ -247,16 +247,18 @@ class NewtonBundle(OptAlg):
             old_delta = self.cur_delta.copy()
 
             self.cur_delta, self.lam_cur = get_lam(self.dfS,solver=self.solver)
+
             if self.cur_delta > old_delta:
                 raise Exception('delta increased')
         else:
             self.lam_cur = jobs[k_sub][1]
-            self.cur_delta = np.linalg.norm(self.lam_cur@self.dfS)
 
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
             self.d2fS[k_sub, :, :] = oracle['d2f']
+
+        self.cur_delta = np.linalg.norm(self.lam_cur @ self.dfS)
 
         # print(self.cur_delta, flush=True)
 
@@ -357,4 +359,5 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
             elif solver == 'CVXOPT':
                 prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
 
-        return np.sqrt(prob.value), lam.value.copy()
+        # return np.sqrt(prob.value), lam.value.copy()
+        return np.linalg.norm(lam.value@dfS_), lam.value.copy()
