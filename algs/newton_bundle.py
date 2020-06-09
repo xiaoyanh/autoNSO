@@ -63,7 +63,7 @@ cvx_params = {'max_iters' : int(1e3),
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1, adaptive_bundle=False,
-                 solver='MOSEK', **kwargs):
+                 store_hessian=False, solver='MOSEK', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -79,6 +79,7 @@ class NewtonBundle(OptAlg):
         self.pinv_cond   = pinv_cond
         self.random_sz   = random_sz
         self.adaptive_bundle = adaptive_bundle
+        self.store_hessian = store_hessian
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog']
@@ -106,6 +107,7 @@ class NewtonBundle(OptAlg):
                 raise Exception('Start type must me bundle or random')
 
             self.path_x = np.zeros([self.cur_iter, self.x_dim]) * np.nan
+            self.path_hess = np.zeros([self.cur_iter, self.x_dim]) * np.nan
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
@@ -187,6 +189,10 @@ class NewtonBundle(OptAlg):
         G  = self.D @ self.dfS # See Lewis-Wylie (2019)
         b_l = self.D@(np.einsum('ij,ij->i',self.dfS,self.S) - self.fS)
 
+        hessian = np.einsum('s,sij->ij', self.lam_cur, self.d2fS)
+        if self.store_hessian:
+            self.hessian = hessian.copy()
+
         if self.proj_hess: # Project hessian. See Lewis-Wylie 2019
             Q, R    = np.linalg.qr(G.T, mode='complete')
             V = Q[:,:(self.k-1)]
@@ -205,9 +211,8 @@ class NewtonBundle(OptAlg):
             self.cur_x = U@xu + p
         else:
             A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
-            top_left = np.einsum('s,sij->ij',self.lam_cur,self.d2fS)
 
-            A[0:self.x_dim,0:self.x_dim]=top_left
+            A[0:self.x_dim,0:self.x_dim]=hessian
             A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
             A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
             A[(self.x_dim+1):, 0:self.x_dim]               = G
@@ -266,6 +271,7 @@ class NewtonBundle(OptAlg):
         self.update_params()
 
     def update_params(self):
+
         self.cur_diam = np.array(get_diam(self.S))
         print('Diam: {}'.format(self.cur_diam),flush=True)
         print('Delta: {}'.format(self.cur_delta), flush=True)
@@ -276,12 +282,20 @@ class NewtonBundle(OptAlg):
             self.path_diam = np.concatenate((self.path_diam, self.cur_diam[np.newaxis]))
             self.path_delta = np.concatenate((self.path_delta, self.cur_delta[np.newaxis]))
             # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
+
+            if self.store_hessian:
+                hess_spec = torch.svd(self.hessian,compute_uv=False).data.numpy()
+                self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]
             self.path_diam = self.cur_diam[np.newaxis]
             self.path_delta = self.cur_delta[np.newaxis]
             # self.path_vio = self.cur_vio[np.newaxis]
+
+            if self.store_hessian:
+                hess_spec = torch.svd(self.hessian,compute_uv=False).data.numpy()
+                self.path_hess = hess_spec[np.newaxis]
 
         # Update paths and bundle constraints
         self.cur_iter += 1
