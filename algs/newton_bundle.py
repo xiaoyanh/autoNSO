@@ -284,7 +284,7 @@ class NewtonBundle(OptAlg):
             # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
 
             if self.store_hessian:
-                hess_spec = torch.svd(self.hessian,compute_uv=False).data.numpy()
+                hess_spec = torch.svd(self.hessian,compute_uv=False)[1].data.numpy()
                 self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]

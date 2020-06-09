@@ -107,6 +107,10 @@ class BFGS(TorchAlg):
                                      ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad,
                                      store_hessian=store_hessian)
 
+        self.store_hessian = store_hessian
+        if self.store_hessian:
+            self.path_hess = None
+
     def step(self):
         super(TorchAlg, self).step()
 
@@ -121,6 +125,14 @@ class BFGS(TorchAlg):
         # Update current iterate value and update the bundle
         self.cur_x = self.p.data.numpy().copy()
         self.update_params()
+
+        if self.store_hessian:
+            hess_spec = torch.svd(self.optimizer.hessian, compute_uv=False)[1].data.numpy()
+            if (self.path_hess is not None):
+                self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
+            else:
+                self.path_hess = hess_spec[np.newaxis]
+
 
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
