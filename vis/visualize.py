@@ -6,6 +6,7 @@ Created on Mon Sep  2 16:32:35 2019
 @author: Xiaoyan
 """
 import torch
+import warnings
 import itertools
 import numpy as np
 import seaborn as sns
@@ -186,7 +187,8 @@ class OptPlot:
             return ax
 
     # Plot for objective function of two inputs
-    def plotValue(self, val_list=['path_fx'], title=None, rescaled=False, ax=None, rolling_min=['path_fx']):
+    def plotValue(self, val_list=['path_fx'], title=None, rescaled=False, fixed_shift=0.0, ax=None,
+                  rolling_min=['path_fx','path_diam','path_delta']):
         assert len(self.opt_algs) > 0
         val_list = [val_list] if isinstance(val_list,str) else val_list
         rolling_min = [rolling_min] if isinstance(val_list, str) else rolling_min
@@ -229,11 +231,22 @@ class OptPlot:
 
                 if alg.total_iter > max_iters:
                     max_iters = alg.total_iter
-                all_vals = np.concatenate((all_vals,getattr(alg,val)))
 
-            shift = 0
-            if val == 'path_fx' and ((min(all_vals) < 0) or rescaled):
-                shift  =  -np.nanmin(all_vals)
+                alg_val = getattr(alg,val)
+                if val in rolling_min:
+                    alg_val = np.fmin.accumulate(alg_val)
+                all_vals = np.concatenate((all_vals,alg_val))
+
+            if len(all_vals) == 0:
+                warnings.warn('The value {} is empty!'.format(val))
+                continue
+
+            if val == 'path_fx':
+                shift = fixed_shift
+                if (min(all_vals) < 0) or rescaled:
+                    shift  =  -np.nanmin(all_vals)
+            else:
+                shift = 0
 
             prefix = ''
             suffix = ''
@@ -253,7 +266,7 @@ class OptPlot:
                 y = getattr(alg,val) + shift
                 y[y==0] = min_f # Just set all 0's to second smallest
 
-                if rolling_min:
+                if val in rolling_min:
                     y = np.fmin.accumulate(y)
 
                 ax.plot(np.arange(alg.total_iter), y,

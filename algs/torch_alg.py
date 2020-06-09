@@ -90,7 +90,7 @@ class Nesterov(TorchAlg):
 
 class BFGS(TorchAlg):
     def __init__(self, objective, lr=1, hist=float('inf'), linesearch='strong_wolfe', ls_params=None,
-                 tolerance_change=1e-9, tolerance_grad=1e-7, **kwargs):
+                 tolerance_change=1e-9, tolerance_grad=1e-7, store_hessian=False, **kwargs):
         super(BFGS, self).__init__(objective, **kwargs)
 
         self.linesearch = linesearch
@@ -104,7 +104,8 @@ class BFGS(TorchAlg):
 
         # This is a modified BFGS from PyTorch
         self.optimizer = lbfgs.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,
-                                     ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad)
+                                     ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad,
+                                     store_hessian=store_hessian)
 
     def step(self):
         super(TorchAlg, self).step()

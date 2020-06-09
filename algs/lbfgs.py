@@ -273,7 +273,8 @@ class LBFGS(Optimizer):
                  tolerance_change=1e-9,
                  history_size=100,
                  line_search_fn=None,
-                 ls_params = None):
+                 ls_params = None,
+                 store_hessian = False):
         if max_eval is None:
             if (ls_params is not None) and ('max_ls' in ls_params.keys()):
                 max_eval = max(max_iter * 5 // 4, ls_params['max_ls'])
@@ -318,6 +319,10 @@ class LBFGS(Optimizer):
         else:
             self.max_ls = 25
 
+        self.store_hessian = store_hessian
+        if self.store_hessian:
+            assert len(self._params) == 1
+            self.hessian = torch.eye(len(self._params[0]),requires_grad=False,dtype=torch.double)
 
     def _numel(self):
         if self._numel_cache is None:
@@ -467,6 +472,10 @@ class LBFGS(Optimizer):
                 for i in range(num_old):
                     be_i = old_dirs[i].dot(r) * ro[i]
                     r.add_(old_stps[i], alpha=al[i] - be_i)
+
+                if self.store_hessian:
+                    tmp = torch.eye(len(self._params[0])) - ro[-1]*torch.ger(old_stps[-1],old_dirs[-1])
+                    self.hessian = tmp @ self.hessian @ tmp + ro[-1] * torch.ger(old_stps[-1],old_stps[-1])
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone(memory_format=torch.contiguous_format)
