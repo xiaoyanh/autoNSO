@@ -63,7 +63,7 @@ cvx_params = {'max_iters' : int(1e3),
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1, adaptive_bundle=False,
-                 store_hessian=False, solver='MOSEK', **kwargs):
+                 store_hessian=False, leaving_met='delta', solver='MOSEK', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -80,9 +80,11 @@ class NewtonBundle(OptAlg):
         self.random_sz   = random_sz
         self.adaptive_bundle = adaptive_bundle
         self.store_hessian = store_hessian
+        self.leaving_met = leaving_met
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog']
+        assert leaving_met in ['delta','ls']
 
         print("Project Hessian: {}".format(self.proj_hess),flush=True)
 
@@ -240,37 +242,7 @@ class NewtonBundle(OptAlg):
         if self.store_hessian:
             self.hessian = oracle['d2f']
 
-        # Combinatorially find leaving index
-        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
-        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
-
-        jobs_delta = [jobs[i][0] for i in range(self.k)]
-        k_sub = np.argmin(jobs_delta)
-
-        if jobs_delta[k_sub] > self.cur_delta and self.adaptive_bundle:
-            self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
-            self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
-            self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
-            self.d2fS = np.concatenate((self.d2fS, oracle['d2f'][np.newaxis]))
-            self.update_k()
-
-            old_delta = self.cur_delta.copy()
-
-            self.cur_delta, self.lam_cur = get_lam(self.dfS,solver=self.solver)
-
-            if self.cur_delta > old_delta:
-                raise Exception('delta increased')
-        else:
-            self.lam_cur = jobs[k_sub][1]
-
-            self.S[k_sub, :] = self.cur_x
-            self.fS[k_sub]   = self.cur_fx
-            self.dfS[k_sub, :] = oracle['df']
-            self.d2fS[k_sub, :, :] = oracle['d2f']
-
-        self.cur_delta = np.linalg.norm(self.lam_cur @ self.dfS)
-
-        # print(self.cur_delta, flush=True)
+        self.update_bundle(oracle) # Update the bundle
 
         # Update current iterate value and update the bundle
         self.update_params()
@@ -278,6 +250,8 @@ class NewtonBundle(OptAlg):
     def update_params(self):
 
         self.cur_diam = np.array(get_diam(self.S))
+        self.cur_delta = np.linalg.norm(self.lam_cur @ self.dfS)
+
         print('Diam: {}'.format(self.cur_diam),flush=True)
         print('Delta: {}'.format(self.cur_delta), flush=True)
 
@@ -331,6 +305,36 @@ class NewtonBundle(OptAlg):
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'
+
+    def update_bundle(self, oracle):
+        # Combinatorially find leaving index
+        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
+        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
+
+        jobs_delta = [jobs[i][0] for i in range(self.k)]
+        k_sub = np.argmin(jobs_delta)
+
+        if jobs_delta[k_sub] > self.cur_delta and self.adaptive_bundle:
+            self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
+            self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
+            self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
+            self.d2fS = np.concatenate((self.d2fS, oracle['d2f'][np.newaxis]))
+            self.update_k()
+
+            old_delta = self.cur_delta.copy()
+
+            self.cur_delta, self.lam_cur = get_lam(self.dfS,solver=self.solver)
+
+            if self.cur_delta > old_delta:
+                raise Exception('delta increased')
+        else:
+            self.lam_cur = jobs[k_sub][1]
+
+            self.S[k_sub, :] = self.cur_x
+            self.fS[k_sub]   = self.cur_fx
+            self.dfS[k_sub, :] = oracle['df']
+            self.d2fS[k_sub, :, :] = oracle['d2f']
+
 
 # Combinatorially find leaving index
 def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
