@@ -128,11 +128,9 @@ class BFGS(TorchAlg):
 
         if self.store_hessian:
             hess_spec = torch.svd(self.optimizer.hessian, compute_uv=False)[1].data.numpy()
-            if (self.path_hess is not None):
-                self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
-            else:
-                self.path_hess = hess_spec[np.newaxis]
-
+            if (self.path_hess is None):
+                self.path_hess = np.ones(self.x_dim)[np.newaxis] # Hessian is identity at initialization
+            self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
 
     def save_bundle(self):
         print('Bundled Saving Triggered', flush=True)
