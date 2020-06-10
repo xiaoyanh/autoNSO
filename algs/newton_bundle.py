@@ -12,7 +12,7 @@ from algs.newton_bundle_aux.get_lambda import get_lam
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
-                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1, adaptive_bundle=False,
+                 bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
                  store_hessian=False, leaving_met='delta', solver='MOSEK', **kwargs):
         objective.oracle_output='hess+'
 
@@ -28,7 +28,6 @@ class NewtonBundle(OptAlg):
         self.rank_thres  = rank_thres
         self.pinv_cond   = pinv_cond
         self.random_sz   = random_sz
-        self.adaptive_bundle = adaptive_bundle
         self.store_hessian = store_hessian
         self.leaving_met = leaving_met
 
@@ -264,23 +263,8 @@ class NewtonBundle(OptAlg):
         jobs_delta = [jobs[i][0] for i in range(self.k)]
         k_sub = np.argmin(jobs_delta)
 
-        if jobs_delta[k_sub] > self.cur_delta and self.adaptive_bundle:
-            self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
-            self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
-            self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
-            self.d2fS = np.concatenate((self.d2fS, oracle['d2f'][np.newaxis]))
-            self.update_k()
-
-            old_delta = self.cur_delta.copy()
-
-            self.cur_delta, self.lam_cur = get_lam(self.dfS,solver=self.solver)
-
-            if self.cur_delta > old_delta:
-                raise Exception('delta increased')
-        else:
-            self.lam_cur = jobs[k_sub][1]
-
-            self.S[k_sub, :] = self.cur_x
-            self.fS[k_sub]   = self.cur_fx
-            self.dfS[k_sub, :] = oracle['df']
-            self.d2fS[k_sub, :, :] = oracle['d2f']
+        self.lam_cur = jobs[k_sub][1]
+        self.S[k_sub, :] = self.cur_x
+        self.fS[k_sub]   = self.cur_fx
+        self.dfS[k_sub, :] = oracle['df']
+        self.d2fS[k_sub, :, :] = oracle['d2f']

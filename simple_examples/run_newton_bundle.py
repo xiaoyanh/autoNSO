@@ -43,7 +43,6 @@ rank_thres = None
 bfgs_lr = 0.1
 rescaled  = False
 bundle_prune = 'duals'
-adaptive_bundle = False
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, 10)
     objective = stronglyconvex(n=n,k=10,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
@@ -99,7 +98,7 @@ alg_list += [optAlg1]
 
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver='MOSEK', adaptive_bundle=adaptive_bundle)
+                       solver='MOSEK')
 optAlg0.optimize()
 alg_list += [optAlg0]
 
