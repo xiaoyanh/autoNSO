@@ -155,7 +155,7 @@ class ProxBundle(OptAlg):
             if serious:
                 if self.naive_prune: # Throw away all constraints after serious step
                     self.constraints = []
-                    self.constraint_int = []
+                    self.constraint_ind = []
                 else:
                     # Remove inactive constraints
                     inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
@@ -184,6 +184,10 @@ class ProxBundle(OptAlg):
                              'iter': self.cur_iter,
                              'x'   : self.cur_x.copy(),
                              'duals' : duals}
+
+        if self.prune and self.naive_prune:
+            self.saved_bundle['bundle'] = np.concatenate((self.saved_bundle['bundle'],self.cur_x[np.newaxis]))
+            self.saved_bundle['duals'] += [float('inf')]
 
     def check_crit(self):
         tmp = []
