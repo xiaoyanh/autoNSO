@@ -257,13 +257,18 @@ class NewtonBundle(OptAlg):
 
     def update_bundle(self, oracle):
         # Combinatorially find leaving index
-        conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
-        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
 
-        jobs_delta = [jobs[i][0] for i in range(self.k)]
-        k_sub = np.argmin(jobs_delta)
+        if self.leaving_met == 'delta':
+            conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
+            jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
 
-        self.lam_cur = jobs[k_sub][1]
+            jobs_delta = [jobs[i][0] for i in range(self.k)]
+            k_sub = np.argmin(jobs_delta)
+
+            self.lam_cur = jobs[k_sub][1]
+        elif self.leaving_met == 'ls':
+            assert 1==2 # Haven't made this yet
+
         self.S[k_sub, :] = self.cur_x
         self.fS[k_sub]   = self.cur_fx
         self.dfS[k_sub, :] = oracle['df']

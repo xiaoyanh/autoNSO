@@ -31,7 +31,7 @@ g_params = {'BarConvTol': 1e-10,
 
 class ProxBundle(OptAlg):
     def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, active_thres=1e-12,
-                 solver='MOSEK',**kwargs):
+                 solver='MOSEK', naive_prune=False, **kwargs):
         super(ProxBundle, self).__init__(objective, **kwargs)
 
         self.objective.oracle_output = 'both'
@@ -45,6 +45,7 @@ class ProxBundle(OptAlg):
         self.name = 'ProxBundle'
         self.name += ' (mu=' + str(self.mu) + ',null-k=' + str(self.null_k) + ')'
         self.prune = prune
+        self.naive_prune = naive_prune
         self.active_thres = active_thres
         self.solver = solver
 
@@ -152,10 +153,14 @@ class ProxBundle(OptAlg):
 
         if self.prune: # Remove inactive indices
             if serious:
-                # Remove inactive constraints
-                inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
-                [self.constraints.pop(i) for i in inactive]
-                [self.constraint_ind.pop(i) for i in inactive]
+                if self.naive_prune: # Throw away all constraints after serious step
+                    self.constraints = []
+                    self.constraint_int = []
+                else:
+                    # Remove inactive constraints
+                    inactive = np.setdiff1d(np.arange(len(self.constraints)),self.cur_active)[::-1] # Removes in descending order
+                    [self.constraints.pop(i) for i in inactive]
+                    [self.constraint_ind.pop(i) for i in inactive]
 
             self.constraint_ind += [self.cur_iter]
         else:
