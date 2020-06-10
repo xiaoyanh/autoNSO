@@ -107,13 +107,19 @@ class NewtonBundle(OptAlg):
                 raise Exception('Start type must me bundle or random')
 
             self.path_x = np.zeros([self.cur_iter, self.x_dim]) * np.nan
-            self.path_hess = np.zeros([self.cur_iter, self.x_dim]) * np.nan
             self.path_fx = np.zeros([self.cur_iter]) * np.nan
             self.path_diam = np.zeros([self.cur_iter]) * np.nan
             self.path_delta = np.zeros([self.cur_iter]) * np.nan
             # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
 
-        self.cur_fx = self.criterion(torch.tensor(self.cur_x, dtype=torch.double, requires_grad=False)).data.numpy()
+            if self.store_hessian:
+                self.path_hess = np.zeros([self.cur_iter, self.x_dim]) * np.nan
+
+        oracle = self.objective.call_oracle(self.cur_x)
+        self.cur_fx = oracle['f']
+
+        if self.store_hessian:
+            self.hessian = oracle['d2f']
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
             self.S = np.zeros([self.k,self.x_dim])
@@ -189,10 +195,6 @@ class NewtonBundle(OptAlg):
         G  = self.D @ self.dfS # See Lewis-Wylie (2019)
         b_l = self.D@(np.einsum('ij,ij->i',self.dfS,self.S) - self.fS)
 
-        hessian = np.einsum('s,sij->ij', self.lam_cur, self.d2fS)
-        if self.store_hessian:
-            self.hessian = hessian.copy()
-
         if self.proj_hess: # Project hessian. See Lewis-Wylie 2019
             Q, R    = np.linalg.qr(G.T, mode='complete')
             V = Q[:,:(self.k-1)]
@@ -212,7 +214,7 @@ class NewtonBundle(OptAlg):
         else:
             A = np.zeros([self.x_dim+self.k,self.x_dim+self.k])
 
-            A[0:self.x_dim,0:self.x_dim]=hessian
+            A[0:self.x_dim,0:self.x_dim] = np.einsum('s,sij->ij', self.lam_cur, self.d2fS)
             A[0:self.x_dim,self.x_dim:(self.x_dim+self.k)] = self.dfS.T
             A[self.x_dim,self.x_dim:(self.x_dim+self.k)]   = 1
             A[(self.x_dim+1):, 0:self.x_dim]               = G
@@ -234,6 +236,9 @@ class NewtonBundle(OptAlg):
         old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
         self.cur_fx  = oracle['f']
         self.fx_step = (old_fx - self.cur_fx)
+
+        if self.store_hessian:
+            self.hessian = oracle['d2f']
 
         # Combinatorially find leaving index
         conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
@@ -284,8 +289,7 @@ class NewtonBundle(OptAlg):
             # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
 
             if self.store_hessian:
-                hess_spec = torch.svd(self.hessian,compute_uv=False)[1].data.numpy()
-                self.path_hess = np.concatenate((self.path_hess, hess_spec[np.newaxis]))
+                self.path_hess = np.concatenate((self.path_hess, np.linalg.svd(self.hessian,compute_uv=False)[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]
@@ -294,8 +298,7 @@ class NewtonBundle(OptAlg):
             # self.path_vio = self.cur_vio[np.newaxis]
 
             if self.store_hessian:
-                hess_spec = torch.svd(self.hessian,compute_uv=False).data.numpy()
-                self.path_hess = hess_spec[np.newaxis]
+                self.path_hess = np.linalg.svd(self.hessian,compute_uv=False)[np.newaxis]
 
         # Update paths and bundle constraints
         self.cur_iter += 1
