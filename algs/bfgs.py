@@ -233,7 +233,7 @@ def _strong_wolfe(obj_func,
     return f_new, g_new, t, ls_func_evals
 
 
-class LBFGS(Optimizer):
+class BFGS(Optimizer):
     """Implements L-BFGS algorithm, heavily inspired by `minFunc
     <https://www.cs.ubc.ca/~schmidtm/Software/minFunc.html>`.
 
@@ -267,7 +267,7 @@ class LBFGS(Optimizer):
     def __init__(self,
                  params,
                  lr=1,
-                 max_iter=20,
+                 max_iter=1,
                  max_eval=None,
                  tolerance_grad=1e-7,
                  tolerance_change=1e-9,
@@ -288,7 +288,7 @@ class LBFGS(Optimizer):
             tolerance_change=tolerance_change,
             history_size=history_size,
             line_search_fn=line_search_fn)
-        super(LBFGS, self).__init__(params, defaults)
+        super(BFGS, self).__init__(params, defaults)
 
         if len(self.param_groups) != 1:
             raise ValueError("LBFGS doesn't support per-parameter options "
@@ -417,6 +417,7 @@ class LBFGS(Optimizer):
         prev_loss = state.get('prev_loss')
 
         n_iter = 0
+
         # optimize for a max of max_iter iterations
         while n_iter < max_iter:
             # keep track of nb of iterations
@@ -426,13 +427,14 @@ class LBFGS(Optimizer):
             ############################################################
             # compute gradient descent direction
             ############################################################
-            if state['n_iter'] == 1:
+            if state['n_iter'] == 1: # this is different that original n_iter
                 d = flat_grad.neg()
                 old_dirs = [] # y's
                 old_stps = [] # s's
                 ro = []
                 H_diag = 1
             else:
+
                 # do lbfgs update (update memory)
                 y = flat_grad.sub(prev_flat_grad)
                 s = d.mul(t)

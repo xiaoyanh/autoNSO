@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import cvxpy as cp
 import torch.optim as optim
-import algs.lbfgs as lbfgs
+import algs.bfgs as bfgs
 
 from IPython import embed
 from algs.optAlg import OptAlg
@@ -103,7 +103,7 @@ class BFGS(TorchAlg):
         self.name += (' (lr=' + str(self.lr) + ')')
 
         # This is a modified BFGS from PyTorch
-        self.optimizer = lbfgs.LBFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,
+        self.optimizer = bfgs.BFGS([self.p], lr=self.lr, history_size=self.hist, line_search_fn=self.linesearch,
                                      ls_params = ls_params, tolerance_change=tolerance_change, tolerance_grad=tolerance_grad,
                                      store_hessian=store_hessian)
 
