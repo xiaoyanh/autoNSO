@@ -114,18 +114,6 @@ class ProxBundle(OptAlg):
         orcl_call = self.objective.call_oracle(self.cur_y)
         cur_fy = orcl_call['f']
 
-        if not self.ignore_null:
-            self.path_x = self.path_y
-
-            old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
-            self.cur_fx = self.objective.obj_func(self.cur_x).data.numpy()
-            self.fx_step = (old_fx - self.cur_fx)
-
-            if self.path_fx is not None:
-                self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
-            else:
-                self.path_fx = self.cur_fx[np.newaxis]
-
         # Whether to take a serious step
         if expected is not None:
             serious = ((self.path_fx[-1] - cur_fy) > self.null_k * (self.path_fx[-1] - expected))
@@ -133,10 +121,10 @@ class ProxBundle(OptAlg):
             serious = True
 
         if serious:
-            self.cur_x = self.cur_y
+            self.cur_x = self.cur_y.copy()
 
             if self.ignore_null:
-                self.cur_fx = orcl_call['f']
+                self.cur_fx = orcl_call['f'].copy()
                 if self.path_x is not None:
                     self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
                     self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
@@ -150,9 +138,21 @@ class ProxBundle(OptAlg):
         else:
             self.total_null += 1
 
+        if not self.ignore_null:
+            self.path_x = self.path_y
+
+            old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
+            self.cur_fx = self.objective.obj_func(self.cur_x).data.numpy()
+            self.fx_step = (old_fx - self.cur_fx)
+
+            if self.path_fx is not None:
+                self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
+            else:
+                self.path_fx = self.cur_fx[np.newaxis]
 
         if self.prune: # Remove inactive indices
             if serious:
+                print('Serious at iter {}'.format(self.cur_iter),flush=True)
                 if self.naive_prune: # Throw away all constraints after serious step
                     self.constraints = []
                     self.constraint_ind = []
@@ -173,6 +173,7 @@ class ProxBundle(OptAlg):
         self.cur_iter += 1 # Count null steps as interations
 
     def save_bundle(self):
+
         print('Bundled Saving Triggered', flush=True)
 
         if self.prune:
