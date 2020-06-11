@@ -488,7 +488,6 @@ class LBFGS(Optimizer):
                         term2 = self.hessian @ torch.ger(old_stps[i],old_stps[i]) @ self.hessian.T
                         term2 /= old_stps[i].T @ self.hessian @ old_stps[i]
                         self.hessian = self.hessian + term1 - term2
-                    embed()
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone(memory_format=torch.contiguous_format)
