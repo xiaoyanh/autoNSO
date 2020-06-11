@@ -94,3 +94,20 @@ def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
 
         # return np.sqrt(prob.value), lam.value.copy()
         return np.linalg.norm(lam.value@dfS_), lam.value.copy()
+
+def get_LS(S,fS,dfS,sub_ind=None,new_S=None,new_fS=None,new_df=None,):
+    dfS_  = dfS.copy()
+    S_    = S.copy()
+    fS_   = fS.copy()
+    if sub_ind is not None:
+        dfS_[sub_ind] = new_df
+        S_[sub_ind]   = new_S
+        fS_[sub_ind]  = new_fS
+
+    A_ub = np.concatenate((dfS_,-np.ones(len(fS_))[:,np.newaxis]),axis=1)
+    b_ub = np.einsum("sj,sj->s",dfS_,S_) - fS_
+    c = np.zeros(S_.shape[1]+1)
+    c[-1] = 1
+
+    lp = linprog(c,A_ub=A_ub,b_ub=b_ub,bounds=(None,None))
+    return lp.fun
