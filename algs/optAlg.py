@@ -44,7 +44,7 @@ class OptAlg:
     def optimize(self):
 
         # Run the optimization algorithm until a stopping condition is hit
-        while self.cur_iter <= self.max_iter:
+        while self.cur_iter < self.max_iter:
             self.step()            
             if self.stop_cond():
                 break
@@ -58,7 +58,7 @@ class OptAlg:
             print('Optimal Point: ' + str(self.opt_x))
     
     def step(self):
-        if self.verbose:
+        if self.verbose: # Prints previous step
             print('iter: ' + str(self.cur_iter) + ', obj: ' + str(self.cur_fx) + ', step: ' + str(ffs(self.fx_step,4)))
     
     def stop_cond(self):

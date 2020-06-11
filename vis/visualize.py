@@ -280,7 +280,7 @@ class OptPlot:
                 if val in rolling_min:
                     y = np.fmin.accumulate(y)
 
-                ax.plot(np.arange(alg.total_iter), y,
+                ax.plot(np.arange(alg.total_iter+1), y,
                         color=next(palette), marker=next(markers), alpha=.4,
                         label= prefix + lab_dict[val] + alg.name + suffix)
 

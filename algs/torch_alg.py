@@ -47,14 +47,14 @@ class TorchAlg(OptAlg):
         self.fx_step = old_fx - self.cur_fx
 
         if self.path_x is not None:
+            # Update paths and bundle constraints
+            self.cur_iter += 1
+
             self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
             self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]
-
-        # Update paths and bundle constraints
-        self.cur_iter += 1
 
 
 # Subgradient method
