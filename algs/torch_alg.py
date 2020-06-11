@@ -119,7 +119,6 @@ class BFGS(TorchAlg):
             value = self.criterion(self.p)
             value.backward()
             return value
-
         self.optimizer.step(closure)
 
         # Update current iterate value and update the bundle

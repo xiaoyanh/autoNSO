@@ -322,6 +322,7 @@ class LBFGS(Optimizer):
         self.store_hessian = store_hessian
         if self.store_hessian:
             assert len(self._params) == 1
+            self.inv_hessian = torch.eye(len(self._params[0]),requires_grad=False,dtype=torch.double)
             self.hessian = torch.eye(len(self._params[0]), requires_grad=False, dtype=torch.double)
 
     def _numel(self):
@@ -471,6 +472,7 @@ class LBFGS(Optimizer):
                 d = r = torch.mul(q, H_diag)
 
                 if self.store_hessian:
+                    self.inv_hessian = H_diag * torch.eye(len(self._params[0]),dtype=torch.double)
                     self.hessian = (H_diag**(-1)) * torch.eye(len(self._params[0]), dtype=torch.double)
 
                 for i in range(num_old):
@@ -478,10 +480,15 @@ class LBFGS(Optimizer):
                     r.add_(old_stps[i], alpha=al[i] - be_i)
 
                     if self.store_hessian:
+                        tmp1 = torch.eye(len(self._params[0])) - ro[i] * torch.ger(old_dirs[i], old_stps[i])
+                        tmp2 = torch.eye(len(self._params[0])) - ro[i] * torch.ger(old_stps[i], old_dirs[i])
+                        self.inv_hessian = tmp1 @ self.inv_hessian @ tmp2 + ro[i] * torch.ger(old_dirs[i], old_dirs[i])
+
                         term1 = torch.ger(old_dirs[i],old_dirs[i])/torch.dot(old_dirs[i],old_stps[i])
                         term2 = self.hessian @ torch.ger(old_stps[i],old_stps[i]) @ self.hessian.T
                         term2 /= old_stps[i].T @ self.hessian @ old_stps[i]
                         self.hessian = self.hessian + term1 - term2
+                    embed()
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone(memory_format=torch.contiguous_format)
