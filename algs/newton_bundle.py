@@ -5,7 +5,6 @@ from IPython import embed
 from utils.pinv import pinv2
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
-from scipy.optimize import linprog
 from utils.diameter import get_diam
 from joblib import Parallel, delayed
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS

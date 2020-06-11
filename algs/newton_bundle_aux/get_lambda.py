@@ -1,6 +1,7 @@
 import quadprog
 import numpy as np
 import cvxpy as cp
+from scipy.optimize import linprog
 
 tol = 1e-10
 
