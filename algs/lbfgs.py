@@ -322,7 +322,7 @@ class LBFGS(Optimizer):
         self.store_hessian = store_hessian
         if self.store_hessian:
             assert len(self._params) == 1
-            self.hessian = torch.eye(len(self._params[0]),requires_grad=False,dtype=torch.double)
+            self.hessian = torch.eye(len(self._params[0]), requires_grad=False, dtype=torch.double)
 
     def _numel(self):
         if self._numel_cache is None:
@@ -427,8 +427,8 @@ class LBFGS(Optimizer):
             ############################################################
             if state['n_iter'] == 1:
                 d = flat_grad.neg()
-                old_dirs = []
-                old_stps = []
+                old_dirs = [] # y's
+                old_stps = [] # s's
                 ro = []
                 H_diag = 1
             else:
@@ -463,19 +463,25 @@ class LBFGS(Optimizer):
                 # iteration in L-BFGS loop collapsed to use just one buffer
                 q = flat_grad.neg()
                 for i in range(num_old - 1, -1, -1):
-                    al[i] = old_stps[i].dot(q) * ro[i]
+                    al[i] = old_stps[i].dot(q) * ro[i] # alpha
                     q.add_(old_dirs[i], alpha=-al[i])
 
                 # multiply by initial Hessian
                 # r/d is the final direction
                 d = r = torch.mul(q, H_diag)
+
+                if self.store_hessian:
+                    self.hessian = (H_diag**(-1)) * torch.eye(len(self._params[0]), dtype=torch.double)
+
                 for i in range(num_old):
                     be_i = old_dirs[i].dot(r) * ro[i]
                     r.add_(old_stps[i], alpha=al[i] - be_i)
 
-                if self.store_hessian:
-                    tmp = torch.eye(len(self._params[0])) - ro[-1]*torch.ger(old_stps[-1],old_dirs[-1])
-                    self.hessian = tmp @ self.hessian @ tmp + ro[-1] * torch.ger(old_stps[-1],old_stps[-1])
+                    if self.store_hessian:
+                        term1 = torch.ger(old_dirs[i],old_dirs[i])/torch.dot(old_dirs[i],old_stps[i])
+                        term2 = self.hessian @ torch.ger(old_stps[i],old_stps[i]) @ self.hessian.T
+                        term2 /= old_stps[i].T @ self.hessian @ old_stps[i]
+                        self.hessian = self.hessian + term1 - term2
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone(memory_format=torch.contiguous_format)
