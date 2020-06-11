@@ -137,6 +137,12 @@ class NewtonBundle(OptAlg):
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver)
         self.update_k()
+
+        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
+        if self.proj_hess:
+            self.name += ' U-projected'
+        self.name += ')'
+
         self.update_params()
 
     def step(self):
@@ -249,11 +255,6 @@ class NewtonBundle(OptAlg):
         self.D = diags([1, -1], offsets=[0, 1], shape=(self.k - 1, self.k)).toarray()
 
         print('Bundle Size Set to {}'.format(self.k), flush=True)
-
-        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
-        if self.proj_hess:
-            self.name += ' U-projected'
-        self.name += ')'
 
     def update_bundle(self, oracle):
         # Combinatorially find leaving index
