@@ -64,7 +64,7 @@ class NewtonBundle(OptAlg):
             # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
 
             if self.store_hessian:
-                self.path_hess = np.zeros([self.cur_iter, self.x_dim]) * np.nan
+                self.path_hess = np.zeros([self.cur_iter+1, self.x_dim]) * np.nan
 
         oracle = self.objective.call_oracle(self.cur_x)
         self.cur_fx = oracle['f']
