@@ -15,6 +15,7 @@ from algs.optAlg import OptAlg
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.patches as mpl_patches
 
 matplotlib.rcParams['text.usetex'] = True
 
@@ -201,6 +202,10 @@ class OptPlot:
                     'path_vio': r"$Vio.=|Ax - b|: "}
 
         if 'path_hess' in val_list: # Handle plotting spectrum of hessian
+            # Only plot Hessian spectrum: Otherwise, plot will look like a mess
+            assert len(self.opt_algs) == 1
+            assert len(val_list) == 1
+
             val_list.remove('path_hess')
             for i in range(self.x_dim):
                 val_list += ['path_hess{}'.format(i)]
@@ -300,7 +305,16 @@ class OptPlot:
         ax.set_yticklabels(ylabs_prt)
 
         if plot_now:
-            plt.legend()
+
+            if 'path_hess1' in val_list:
+                handles = [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white",
+                                                 lw=0, alpha=0)]
+                labels = [r"$\sigma_i(\nabla^2 f(x))$: "+self.opt_algs[0].name]
+
+                ax.legend(handles, labels, loc='best', fontsize='x-large',
+                          fancybox=True, handlelength=0, handletextpad=0)
+            else:
+                plt.legend()
             plt.show()
             # plt.draw()
         else:
