@@ -310,9 +310,14 @@ class OptPlot:
                 handles = [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white",
                                                  lw=0, alpha=0)]
                 labels = [r"$\sigma_i(\nabla^2 f(x))$: "+self.opt_algs[0].name]
-
                 ax.legend(handles, labels, loc='best', fontsize='x-large',
                           fancybox=True, handlelength=0, handletextpad=0)
+
+                ax2 = ax.twinx()
+                ax2.set_ylim(ax.get_ylim())
+                ax2.set_yscale(ax.get_yscale())
+                ax2.set_yticks(self.opt_algs[0].path_hess[-1,:])
+                ax2.set_yticklabels(np.arange(self.x_dim)+1)
             else:
                 plt.legend()
             plt.show()
