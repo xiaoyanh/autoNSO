@@ -115,8 +115,6 @@ class ProxBundle(OptAlg):
         # Whether to take a serious step
         if expected is not None:
             serious = ((self.path_fx[-1] - cur_fy) > self.null_k * (self.path_fx[-1] - expected))
-            if serious:
-                print('Serious at iter {}'.format(self.cur_iter+1),flush=True)
         else:
             serious = True
 
