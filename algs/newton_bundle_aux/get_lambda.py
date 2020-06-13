@@ -1,7 +1,11 @@
 import quadprog
 import numpy as np
 import cvxpy as cp
+import matlab.engine
+import multiprocessing
+from IPython import embed
 from scipy.optimize import linprog
+from joblib import Parallel, delayed
 
 tol = 1e-10
 
@@ -49,52 +53,83 @@ cvx_params = {'max_iters' : int(1e3),
                 'kktsolver' : 'robust',
               }
 
+matlab_params = {'tol' : 1e-16,
+                 'maxiter' : 1e4,}
+
 # Combinatorially find leaving index
-def get_lam(dfS,sub_ind=None,new_df=None, solver='MOSEK'):
-    k = dfS.shape[0]
+def get_lam(dfS,new_df=None, solver='MOSEK', eng=None):
 
-    dfS_ = dfS.copy()
-    if sub_ind is not None:
-        dfS_[sub_ind] = new_df
-    Q = dfS_ @ dfS_.T
+    if solver is 'MATLAB':
+        assert eng is not None
+        maxiter = matlab_params['maxiter']
+        tol     = matlab_params['tol']
 
-    if solver == 'quadprog':
-        Q *= 2
-        C = np.concatenate((np.ones(k)[np.newaxis],np.eye(k)))
-        b = np.zeros(k+1)
-        b[0] = 1
-        prob = quadprog.solve_qp(Q,np.zeros(k),C.T,b,1)
+        P = matlab.double(dfS.T.tolist())
 
-        return np.sqrt(prob[1]), prob[0]
-    else: # cvxpy
-        lam = cp.Variable(k)
-        constraints = [cp.sum(lam) == 1.0]
-        constraints += [lam >= 0.0]
+        if new_df is not None:
+            sub_vec = matlab.double(new_df.tolist())
+            lam, delta = eng.WolfeAlg(P, tol, tol, tol, maxiter, sub_vec, nargout=2)
+            lam = np.asarray(lam).squeeze()
+            delta = np.asarray(delta).squeeze()
+        else:
+            lam, delta = eng.WolfeAlg(P, tol, tol, tol, maxiter, nargout=2)
+        lam = np.asarray(lam).squeeze()
+        delta = np.asarray(delta).squeeze()
 
-        # Find lambda (warm start with previous iteration)
-        prob = cp.Problem(cp.Minimize(cp.quad_form(lam, Q)), constraints)
+        return delta, lam
+    else:
+        k = dfS.shape[0]
 
-        try:
-            if solver == 'MOSEK':
-                prob.solve(solver=cp.MOSEK, mosek_params=m_params)
-            elif solver == 'GUROBI':
-                prob.solve(solver=cp.GUROBI,**g_params)
-            elif solver == 'OSQP':
-                prob.solve(solver=cp.OSQP, **osqp_params)
-            elif solver == 'CVXOPT':
-                prob.solve(solver=cp.CVXOPT, **cvx_params)
-        except:
-            if solver == 'MOSEK':
-                prob.solve(solver=cp.MOSEK, mosek_params=m_params, verbose=True)
-            elif solver == 'GUROBI':
-                prob.solve(solver=cp.GUROBI,**g_params, verbose=True)
-            elif solver == 'OSQP':
-                prob.solve(solver=cp.OSQP, **osqp_params, verbose=True)
-            elif solver == 'CVXOPT':
-                prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
+        if new_df is not None:
+            def conv_size(i):
+                dfS_ = dfS.copy()
+                dfS_[i,:] = new_df
+                return get_lam(dfS_, solver=solver)
+            jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),k))(delayed(conv_size)(i) for i in range(k))
 
-        # return np.sqrt(prob.value), lam.value.copy()
-        return np.linalg.norm(lam.value@dfS_), lam.value.copy()
+            jobs_delta = np.array([jobs[i][0] for i in range(k)])
+            jobs_lambda = np.array([jobs[i][1] for i in range(k)])
+            return jobs_delta, jobs_lambda
+        else:
+            Q = dfS @ dfS.T
+
+            if solver == 'quadprog':
+                Q *= 2
+                C = np.concatenate((np.ones(k)[np.newaxis],np.eye(k)))
+                b = np.zeros(k+1)
+                b[0] = 1
+                prob = quadprog.solve_qp(Q,np.zeros(k),C.T,b,1)
+
+                return np.sqrt(prob[1]), prob[0]
+            else: # cvxpy
+                lam = cp.Variable(k)
+                constraints = [cp.sum(lam) == 1.0]
+                constraints += [lam >= 0.0]
+
+                # Find lambda (warm start with previous iteration)
+                prob = cp.Problem(cp.Minimize(cp.quad_form(lam, Q)), constraints)
+
+                try:
+                    if solver == 'MOSEK':
+                        prob.solve(solver=cp.MOSEK, mosek_params=m_params)
+                    elif solver == 'GUROBI':
+                        prob.solve(solver=cp.GUROBI,**g_params)
+                    elif solver == 'OSQP':
+                        prob.solve(solver=cp.OSQP, **osqp_params)
+                    elif solver == 'CVXOPT':
+                        prob.solve(solver=cp.CVXOPT, **cvx_params)
+                except:
+                    if solver == 'MOSEK':
+                        prob.solve(solver=cp.MOSEK, mosek_params=m_params, verbose=True)
+                    elif solver == 'GUROBI':
+                        prob.solve(solver=cp.GUROBI,**g_params, verbose=True)
+                    elif solver == 'OSQP':
+                        prob.solve(solver=cp.OSQP, **osqp_params, verbose=True)
+                    elif solver == 'CVXOPT':
+                        prob.solve(solver=cp.CVXOPT, **cvx_params, verbose=True)
+
+                # return np.sqrt(prob.value), lam.value.copy()
+                return np.linalg.norm(lam.value@dfS), lam.value.copy()
 
 def get_LS(S,fS,dfS,sub_ind=None,new_S=None,new_fS=None,new_df=None,):
     dfS_  = dfS.copy()

@@ -1,7 +1,7 @@
 % Modified from 
 % https://github.com/USNavalResearchLaboratory/TrackerComponentLibrary/blob/8eea2bd66aa6643dd0e704fc22428110d0923439/Mathematical%20Functions/Geometry/nearestPointInPolytope.m
 
-function [x,full_w,norm_x,exitCode]=WolfeAlg(P,Z1,Z2,Z3,maxIter,indSub,subVec)
+function [full_w,norm_x]=WolfeAlg(P,Z1,Z2,Z3,maxIter,subVec)
 %%WOLFEALG This function implement's Wolfe's algorithm in [1] for finding
 %          the point in a polytope that is closest to the origin.
 %
@@ -11,101 +11,106 @@ function [x,full_w,norm_x,exitCode]=WolfeAlg(P,Z1,Z2,Z3,maxIter,indSub,subVec)
 %
 %January 2018 David F. Crouse, Naval Research Laboratory, Washington D.C.
 
-if nargin>5 && ~isempty(indSub):
-    parfor i = 1:n
-        P_new(:,i) = subVec;
-        WolfeAlg(P_new,Z1,Z2,Z3,maxIter)
-    end
-end
-
 n=size(P,1);
-m=size(P,2);
+m=size(P,2); % bundle size
 
-%Indices of the columns in P that are in the columns constituting Q.
-SIdx=zeros(m,1);
-w=zeros(m,1);
+    if nargin>5 && ~isempty(subVec)
+        full_w = zeros(m,m);
+        norm_x = zeros(m,1);
 
-PMags2=sum(P.*P,1);
-
-bVec=zeros(n+1,1);
-bVec(1)=1;
-
-%Step 0
-[~,J]=min(PMags2);
-SIdx(1)=J;
-numInSet=1;
-w(1)=1;
-
-exitCode=-1;
-skip1=false;
-for curIter=1:maxIter
-    if(skip1==false)
-        %Step 1a
-        x=P(:,SIdx(1:numInSet))*w(1:numInSet);
-
-        %Step 1b
-        [~,J]=min(sum(bsxfun(@times,x,P),1));
-
-        %Step 1c
-        if(x'*P(:,J)>x'*x-Z1*max(PMags2(J),PMags2(SIdx(1:numInSet))))
-            exitCode=0;
-            break;
+        parfor i = 1:m
+            P_new = P;
+            P_new(:,i) = subVec;
+            [lam_i, del_i] = WolfeAlg(P_new,Z1,Z2,Z3,maxIter);
+            full_w(i,:) = lam_i;
+            norm_x(i)   = del_i;
         end
+    else
+        %Indices of the columns in P that are in the columns constituting Q.
+        SIdx=zeros(m,1);
+        w=zeros(m,1);
 
-        %Step 1d
-        if(any(J==SIdx(1:numInSet)))
-            exitCode=1;
-            break;
-        end
+        PMags2=sum(P.*P,1);
 
-        %Step 1e
-        numInSet=numInSet+1;
-        SIdx(numInSet)=J;
-        w(numInSet)=0;
-    end
-    
-    %Step 2a. We are solving Equation 4.1 using Algorithm C.
-    u=[ones(1,numInSet);
-       P(:,SIdx(1:numInSet))]\bVec;
-    v=u/sum(u);
+        bVec=zeros(n+1,1);
+        bVec(1)=1;
 
-    %Step 2b
-    if(any(v>Z2))
-        w=v;
+        %Step 0
+        [~,J]=min(PMags2);
+        SIdx(1)=J;
+        numInSet=1;
+        w(1)=1;
+
+        exitCode=-1;
         skip1=false;
-        continue;
+        for curIter=1:maxIter
+            if(skip1==false)
+                %Step 1a
+                x=P(:,SIdx(1:numInSet))*w(1:numInSet);
+
+                %Step 1b
+                [~,J]=min(sum(bsxfun(@times,x,P),1));
+
+                %Step 1c
+                if(x'*P(:,J)>x'*x-Z1*max(PMags2(J),PMags2(SIdx(1:numInSet))))
+                    exitCode=0;
+                    break;
+                end
+
+                %Step 1d
+                if(any(J==SIdx(1:numInSet)))
+                    exitCode=1;
+                    break;
+                end
+
+                %Step 1e
+                numInSet=numInSet+1;
+                SIdx(numInSet)=J;
+                w(numInSet)=0;
+            end
+
+            %Step 2a. We are solving Equation 4.1 using Algorithm C.
+            u=[ones(1,numInSet);
+               P(:,SIdx(1:numInSet))]\bVec;
+            v=u/sum(u);
+
+            %Step 2b
+            if(any(v>Z2))
+                w=v;
+                skip1=false;
+                continue;
+            end
+
+            %Step 3a
+            POS=find(w(1:numInSet)-v>Z3);
+
+            %Step3b
+            theta=min(1,min(w(POS)./(w(POS)-v(POS))));
+
+            %Step 3c
+            w(1:numInSet)=theta*w(1:numInSet)+(1-theta)*v;
+
+            %Step 3d This only needs to work on w(1:numInSet), but is is simpler in
+            %Matlab to do it over all of the w vector that was preallocated.
+            w(w<=Z2)=0;
+
+            %Step 3e We choose to delete the first zero component.
+            idx=find(w(1:numInSet)==0,1);
+            if(isempty(idx))
+                exitCode=2;
+                break;
+            end
+            w(idx)=w(numInSet);
+            SIdx(idx)=SIdx(numInSet);
+            numInSet=numInSet-1;
+            skip1=true;
+        end
+
+        full_w = zeros(m,1);
+        full_w(SIdx(1:(numInSet))) = w;
+
+        norm_x = norm(x);
     end
-    
-    %Step 3a
-    POS=find(w(1:numInSet)-v>Z3);
-    
-    %Step3b
-    theta=min(1,min(w(POS)./(w(POS)-v(POS))));
-    
-    %Step 3c
-    w(1:numInSet)=theta*w(1:numInSet)+(1-theta)*v;
-    
-    %Step 3d This only needs to work on w(1:numInSet), but is is simpler in
-    %Matlab to do it over all of the w vector that was preallocated.
-    w(w<=Z2)=0;
-    
-    %Step 3e We choose to delete the first zero component.
-    idx=find(w(1:numInSet)==0,1);
-    if(isempty(idx))
-        exitCode=2;
-        break;
-    end
-    w(idx)=w(numInSet);
-    SIdx(idx)=SIdx(numInSet);
-    numInSet=numInSet-1;
-    skip1=true;
-end
-
-full_w = zeros(m,1);
-full_w(SIdx(1:(numInSet))) = w;
-
-norm_x = norm(x);
-
 end
 
 %LICENSE:

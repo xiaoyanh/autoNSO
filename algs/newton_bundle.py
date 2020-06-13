@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import matlab.engine
 import multiprocessing
 
 from IPython import embed
@@ -32,8 +34,19 @@ class NewtonBundle(OptAlg):
         self.leaving_met = leaving_met
 
         self.solver = solver
-        assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog']
+        assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
         assert leaving_met in ['delta','ls']
+
+        if self.solver == 'MATLAB':
+            print("Starting parallel pool for MATLAB solver", flush=True)
+
+            threads = multiprocessing.cpu_count()/2
+            self.eng = matlab.engine.start_matlab()
+            self.eng.parpool('local', threads)
+            self.eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
+            print('Started!', flush=True)
+        else:
+            self.eng=None
 
         print("Project Hessian: {}".format(self.proj_hess),flush=True)
 
@@ -117,11 +130,11 @@ class NewtonBundle(OptAlg):
                 rank = k
                 active = active_from_vec(rank,warm_start['duals'])
             elif bundle_prune == 'lambda':
-                _, tmp_lam = get_lam(self.dfS, solver=self.solver)
+                _, tmp_lam = get_lam(self.dfS, solver=self.solver, eng=self.eng)
                 rank = sum(tmp_lam > self.rank_thres * max(tmp_lam))
                 active = active_from_vec(rank, tmp_lam)
             elif bundle_prune == 'log_lambda':
-                _, tmp_lam = get_lam(self.dfS, solver=self.solver)
+                _, tmp_lam = get_lam(self.dfS, solver=self.solver, eng=self.eng)
                 rank   = geo_gap(tmp_lam, exclude_first=True)
                 active = active_from_vec(rank, tmp_lam)
             elif bundle_prune == 'log_svd':
@@ -135,7 +148,7 @@ class NewtonBundle(OptAlg):
             self.d2fS  = self.d2fS[active,:]
 
         # Set params
-        self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver)
+        self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
         self.update_k()
 
         self.name = 'NewtonBundle (bund-sz=' + str(self.k)
@@ -261,18 +274,13 @@ class NewtonBundle(OptAlg):
         # Combinatorially find leaving index
 
         if self.leaving_met == 'delta':
-            conv_size = lambda i : get_lam(self.dfS,sub_ind=i,new_df=oracle['df'],solver=self.solver)
-            jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),self.k))(delayed(conv_size)(i) for i in range(self.k))
-
-            jobs_delta = [jobs[i][0] for i in range(self.k)]
+            jobs_delta, jobs_lambda = get_lam(self.dfS,new_df=oracle['df'],solver=self.solver,eng=self.eng)
             k_sub = np.argmin(jobs_delta)
-
-            self.lam_cur = jobs[k_sub][1]
+            self.lam_cur = jobs_lambda[k_sub,:]
         elif self.leaving_met == 'ls':
             ls_size = lambda i: get_LS(self.S, self.fS, self.dfS,
                                        sub_ind=i,new_S=self.cur_x,new_fS=oracle['f'],new_df=oracle['df'])
             jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), self.k))(delayed(ls_size)(i) for i in range(self.k))
-
             k_sub = np.argmax(jobs)
 
         self.S[k_sub, :] = self.cur_x
@@ -281,4 +289,4 @@ class NewtonBundle(OptAlg):
         self.d2fS[k_sub, :, :] = oracle['d2f']
 
         if self.leaving_met == 'ls':
-            _, self.lam_cur = get_lam(self.dfS, solver=self.solver)
+            _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
