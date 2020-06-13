@@ -1,6 +1,10 @@
 % Modified from 
 % https://github.com/USNavalResearchLaboratory/TrackerComponentLibrary/blob/8eea2bd66aa6643dd0e704fc22428110d0923439/Mathematical%20Functions/Geometry/nearestPointInPolytope.m
 
+function out = test_out()
+    out = 1
+end
+
 function [x,full_w,norm_x,exitCode]=nearestPointInPolytope(P,z,algorithm,algParams)
 %%NEARESTPOINTINPOLYTOPE Given a polytope defined as the convex hull of a
 %          set of points, determine the point on the hull that is closest

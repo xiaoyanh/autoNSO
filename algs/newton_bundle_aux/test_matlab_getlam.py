@@ -3,10 +3,17 @@ import numpy as np
 import matlab.engine
 
 threads   = 8
-future = matlab.engine.start_matlab(background=True)
-eng = future.result()
-eng.parpool('local',threads,background=True)
+eng = matlab.engine.start_matlab()
+# eng = future.result()
+# eng.parpool('local',threads,background=True)
+
+dfS = np.random.randn(10,50)
+
+tol = 1e-16
+max_iter = 1e4
 
 eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
-a = matlab.double(A_list.tolist(), is_complex=True)
-r_gap = np.asarray(eng.radius_gap(a)[0])
+P = matlab.double(dfS.T.tolist())
+_, lam, delta, _ = eng.WolfeAlg(P,tol,tol,tol,max_iter,nargout=4)
+
+lam = np.asarray(lam).flatten()
