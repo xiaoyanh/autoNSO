@@ -15,7 +15,7 @@ from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
-                 store_hessian=False, leaving_met='delta', solver='MOSEK', **kwargs):
+                 store_hessian=False, leaving_met='delta', solver='MOSEK', adaptive_bundle=False, **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -32,6 +32,7 @@ class NewtonBundle(OptAlg):
         self.random_sz   = random_sz
         self.store_hessian = store_hessian
         self.leaving_met = leaving_met
+        self.adaptive_bundle = adaptive_bundle
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
@@ -151,11 +152,6 @@ class NewtonBundle(OptAlg):
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
         self.update_k()
 
-        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
-        if self.proj_hess:
-            self.name += ' U-projected'
-        self.name += ')'
-
         self.update_params()
 
     def step(self):
@@ -268,6 +264,11 @@ class NewtonBundle(OptAlg):
         self.k = self.S.shape[0]
         self.D = diags([1, -1], offsets=[0, 1], shape=(self.k - 1, self.k)).toarray()
 
+        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
+        if self.proj_hess:
+            self.name += ' U-projected'
+        self.name += ')'
+
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
     def update_bundle(self, oracle):
@@ -283,10 +284,24 @@ class NewtonBundle(OptAlg):
             jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), self.k))(delayed(ls_size)(i) for i in range(self.k))
             k_sub = np.argmax(jobs)
 
-        self.S[k_sub, :] = self.cur_x
-        self.fS[k_sub]   = self.cur_fx
-        self.dfS[k_sub, :] = oracle['df']
-        self.d2fS[k_sub, :, :] = oracle['d2f']
+        if self.leaving_met=='delta' and jobs_delta[k_sub] >= self.cur_delta and self.adaptive_bundle:
+            self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
+            self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
+            self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
+            self.d2fS = np.concatenate((self.d2fS, oracle['d2f'][np.newaxis]))
+            self.update_k()
+
+            # old_delta = self.cur_delta.copy()
+
+            self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver,eng=self.eng)
+
+            # if self.cur_delta > old_delta:
+            #     raise Exception('delta increased')
+        else:
+            self.S[k_sub, :] = self.cur_x
+            self.fS[k_sub]   = self.cur_fx
+            self.dfS[k_sub, :] = oracle['df']
+            self.d2fS[k_sub, :, :] = oracle['d2f']
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
