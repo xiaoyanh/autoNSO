@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import cvxpy as cp
 from IPython import embed
 from obj.objective import Objective
 from torch import abs, max, sum, norm, sqrt, einsum, stack, symeig, tensor, Tensor
@@ -88,9 +89,20 @@ def nonconvex(n=50, k=10, seed=0, **kwargs):
 # Creates a partly objective function for particular n and m
 def partlysmooth(n=50, m=25, seed=0, **kwargs):
     torch.random.manual_seed(seed)
-
     tmp = torch.randn(n+1,m,m,dtype=torch.double)
     A = stack([tmp[i, :, :].T + tmp[i, :, :] for i in range(n+1)])
+
+    # Get true vaues
+    l = cp.Variable(n)
+    obj = A[0,:,:].data.numpy()
+    for i in range(n):
+        obj += A[i+1,:,:]*l[i]
+    prob = cp.Problem(cp.Minimize(cp.lambda_max(obj)))
+    prob.solve(solver='MOSEK')
+
+    true_val = prob.value
+    true_spec = np.linalg.eigvalsh(A[0,:,:] + np.einsum('i,ijk->jk',l.value,A[1:,:,:]))
+    true_mult = np.sum(np.isclose(true_spec,np.max(true_spec)))
 
     def ps_function(x):
         if type(x) != Tensor: # If non-tensor passed in, no gradient will be used
@@ -100,7 +112,7 @@ def partlysmooth(n=50, m=25, seed=0, **kwargs):
         mat = A[0,:,:] + einsum('i,ijk->jk',x,A[1:,:,:])
         return symeig(mat,eigenvectors=True)[0][-1] # eigenvalues in ascending order
 
-    return Objective(ps_function, **kwargs)
+    return Objective(ps_function, **kwargs), true_val, true_mult
 
 # Half and half
 def halfandhalf(n=50, seed=0, **kwargs):
