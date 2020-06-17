@@ -9,6 +9,7 @@ from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from utils.diameter import get_diam
 from joblib import Parallel, delayed
+from algs.newton_bundle_aux.aug_bund import augment_bundle
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
 # Bundle Newton Method from Lewis-Wylie 2019
@@ -33,6 +34,7 @@ class NewtonBundle(OptAlg):
         self.store_hessian = store_hessian
         self.leaving_met = leaving_met
         self.adaptive_bundle = adaptive_bundle
+        self.k = k
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
@@ -55,7 +57,6 @@ class NewtonBundle(OptAlg):
         if warm_start is None:
             self.cur_x = self.x0
             self.S = None
-            self.k = k  # bundle size
         else:
             self.cur_x      = warm_start['x']
             self.cur_iter   = warm_start['iter']
@@ -64,9 +65,7 @@ class NewtonBundle(OptAlg):
 
             if start_type == 'bundle':
                 self.S      = warm_start['bundle']
-                self.k = self.S.shape[0]
             elif start_type == 'random':
-                self.k = k
                 self.S = self.cur_x + np.random.randn(self.k, self.x_dim) * np.linalg.norm(self.cur_x) * self.random_sz
             else:
                 raise Exception('Start type must me bundle or random')
@@ -87,10 +86,15 @@ class NewtonBundle(OptAlg):
             self.hessian = oracle['d2f']
 
         if self.S is None: # If bundle is none, randomly initialize it (k * n)
+            assert self.k is not None
             self.S = np.zeros([self.k,self.x_dim])
             self.S[0,:] = self.x0
             if self.k > 1:
                 self.S[1:,:] = self.x0 + np.random.randn(self.k-1,self.x_dim)
+        elif (self.k is not None) and self.S.shape[0] < self.k:
+            self.S = np.concatenate((self.S,np.random.randn(self.k - self.S.shape[0], self.x_dim)))
+        elif self.k is None:
+            self.k = self.S.shape[0]
 
         # Add higher order info results
         self.fS   = np.zeros(self.k)
@@ -104,49 +108,7 @@ class NewtonBundle(OptAlg):
 
         # # Add extra step where we reduce rank of S
         if warm_start and start_type=='bundle' and (bundle_prune is not None):
-            assert bundle_prune in ['lambda','svd','log_lambda','log_svd','svd2','duals']
-
-            print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
-
-            def active_from_vec(rank,vec):
-                if self.proj_hess:
-                    rank = min(rank,self.x_dim)
-                return np.argsort(vec)[-rank:]
-
-            def geo_gap(vec,exclude_first=True):
-                sorted = np.argsort(abs(np.diff(np.log10(np.sort(vec)[::-1]))))
-                ind = -2 if exclude_first else -1
-                return sorted[ind] + 1
-
-            if bundle_prune == 'svd':
-                sig = np.linalg.svd(self.dfS,compute_uv=False)
-                rank = int(1 * sum(sig > max(sig)*self.rank_thres))
-                active = active_from_vec(rank,warm_start['duals'])
-            elif bundle_prune == 'svd2':
-                sig = np.linalg.svd(np.concatenate((self.dfS, np.ones(self.k)[:, np.newaxis]), axis=1),compute_uv=False)
-                rank = int(1 * sum(sig > max(sig) * self.rank_thres))
-                active = active_from_vec(rank,warm_start['duals'])
-            elif bundle_prune == 'duals':
-                assert k is not None
-                rank = k
-                active = active_from_vec(rank,warm_start['duals'])
-            elif bundle_prune == 'lambda':
-                _, tmp_lam = get_lam(self.dfS, solver=self.solver, eng=self.eng)
-                rank = sum(tmp_lam > self.rank_thres * max(tmp_lam))
-                active = active_from_vec(rank, tmp_lam)
-            elif bundle_prune == 'log_lambda':
-                _, tmp_lam = get_lam(self.dfS, solver=self.solver, eng=self.eng)
-                rank   = geo_gap(tmp_lam, exclude_first=True)
-                active = active_from_vec(rank, tmp_lam)
-            elif bundle_prune == 'log_svd':
-                sig = np.linalg.svd(self.dfS,compute_uv=False)
-                rank   = geo_gap(sig, exclude_first=True)
-                active = active_from_vec(rank,warm_start['duals'])
-
-            self.S     = self.S[active, :]
-            self.fS    = self.fS[active]
-            self.dfS   = self.dfS[active,:]
-            self.d2fS  = self.d2fS[active,:]
+            augment_bundle(self, bundle_prune, self.k, warm_start)
 
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
