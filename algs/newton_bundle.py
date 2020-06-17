@@ -9,7 +9,7 @@ from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from utils.diameter import get_diam
 from joblib import Parallel, delayed
-from algs.newton_bundle_aux.aug_bund import augment_bundle
+from algs.newton_bundle_aux.aug_bund import create_bundle
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
 # Bundle Newton Method from Lewis-Wylie 2019
@@ -100,15 +100,8 @@ class NewtonBundle(OptAlg):
         self.fS   = np.zeros(self.k)
         self.dfS  = np.zeros([self.k,self.x_dim])
         self.d2fS = np.zeros([self.k,self.x_dim,self.x_dim])
-        for i in range(self.k):
-            oracle = self.objective.call_oracle(self.S[i,:])
-            self.fS[i]   = oracle['f']
-            self.dfS[i,:]  = oracle['df']
-            self.d2fS[i,:,:] = oracle['d2f']
 
-        # # Add extra step where we reduce rank of S
-        if warm_start and start_type=='bundle' and (bundle_prune is not None):
-            augment_bundle(self, bundle_prune, self.k, warm_start)
+        create_bundle(self, bundle_prune, self.k, warm_start)
 
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
