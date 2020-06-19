@@ -2,6 +2,7 @@ import numpy as np
 import multiprocessing
 from IPython import embed
 from joblib import Parallel, delayed
+from utils.cayley_menger import simplex_vol
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
 def get_leaving(obj, oracle):
@@ -17,6 +18,7 @@ def get_leaving(obj, oracle):
     elif obj.leaving_met == 'grad_dist':
         k_sub = np.argmin(np.linalg.norm(obj.dfS - oracle['df'],axis=1))
     elif obj.leaving_met == 'cayley_menger':
+        simplex_vol(obj.dfS)
         pass
 
     if obj.leaving_met == 'delta' and jobs_delta[k_sub] >= obj.cur_delta and obj.adaptive_bundle:
