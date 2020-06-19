@@ -1,8 +1,15 @@
 import numpy as np
+from IPython import embed
+
 from algs.newton_bundle_aux.get_lambda import get_lam
 
 def create_bundle(obj, bundle_prune, warm_start, start_type):
-    for i in range(obj.k):
+
+    # Add higher order info results
+    obj.fS = np.zeros(obj.S.shape[0])
+    obj.dfS = np.zeros([obj.S.shape[0], obj.x_dim])
+    obj.d2fS = np.zeros([obj.S.shape[0], obj.x_dim, obj.x_dim])
+    for i in range(obj.S.shape[0]):
         oracle = obj.objective.call_oracle(obj.S[i, :])
         obj.fS[i] = oracle['f']
         obj.dfS[i, :] = oracle['df']

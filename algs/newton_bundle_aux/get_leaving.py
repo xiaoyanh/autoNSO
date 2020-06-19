@@ -1,5 +1,6 @@
 import numpy as np
 import multiprocessing
+from IPython import embed
 from joblib import Parallel, delayed
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
@@ -14,7 +15,7 @@ def get_leaving(obj, oracle):
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), obj.k))(delayed(ls_size)(i) for i in range(obj.k))
         k_sub = np.argmax(jobs)
     elif obj.leaving_met == 'grad_dist':
-        pass
+        k_sub = np.argmin(np.linalg.norm(obj.dfS - oracle['df'],axis=1))
     elif obj.leaving_met == 'cayley_menger':
         pass
 

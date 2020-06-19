@@ -38,7 +38,7 @@ class NewtonBundle(OptAlg):
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
-        assert leaving_met in ['delta','ls']
+        assert leaving_met in ['delta','ls','grad_dist','cayley_menger']
 
         if self.solver == 'MATLAB':
             print("Starting parallel pool for MATLAB solver", flush=True)
@@ -96,12 +96,7 @@ class NewtonBundle(OptAlg):
         elif self.k is None:
             self.k = self.S.shape[0]
 
-        # Add higher order info results
-        self.fS   = np.zeros(self.k)
-        self.dfS  = np.zeros([self.k,self.x_dim])
-        self.d2fS = np.zeros([self.k,self.x_dim,self.x_dim])
-
-        create_bundle(self, bundle_prune, self.k, warm_start)
+        create_bundle(self, bundle_prune,  warm_start, start_type)
 
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
