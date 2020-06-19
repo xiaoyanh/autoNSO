@@ -8,9 +8,9 @@ from utils.pinv import pinv2
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from utils.diameter import get_diam
-from algs.newton_bundle_aux.aug_bund import create_bundle
+from algs.newton_bundle_aux.get_lambda import get_lam
 from algs.newton_bundle_aux.get_leaving import get_leaving
-from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
+from algs.newton_bundle_aux.aug_bund import create_bundle
 
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
@@ -227,8 +227,8 @@ class NewtonBundle(OptAlg):
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
     def update_bundle(self, oracle):
-        k_sub = get_leaving(self, oracle) # Finding leaving index
-        if k_sub:
+        k_sub = get_leaving(self,oracle)
+        if k_sub is not None:
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
