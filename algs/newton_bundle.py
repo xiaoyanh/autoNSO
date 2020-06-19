@@ -8,8 +8,8 @@ from utils.pinv import pinv2
 from algs.optAlg import OptAlg
 from scipy.sparse import diags
 from utils.diameter import get_diam
-from joblib import Parallel, delayed
 from algs.newton_bundle_aux.aug_bund import create_bundle
+from algs.newton_bundle_aux.get_leaving import get_leaving
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
 # Bundle Newton Method from Lewis-Wylie 2019
@@ -227,32 +227,8 @@ class NewtonBundle(OptAlg):
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
     def update_bundle(self, oracle):
-        # Combinatorially find leaving index
-
-        if self.leaving_met == 'delta':
-            jobs_delta, jobs_lambda = get_lam(self.dfS,new_df=oracle['df'],solver=self.solver,eng=self.eng)
-            k_sub = np.argmin(jobs_delta)
-            self.lam_cur = jobs_lambda[k_sub,:]
-        elif self.leaving_met == 'ls':
-            ls_size = lambda i: get_LS(self.S, self.fS, self.dfS,
-                                       sub_ind=i,new_S=self.cur_x,new_fS=oracle['f'],new_df=oracle['df'])
-            jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), self.k))(delayed(ls_size)(i) for i in range(self.k))
-            k_sub = np.argmax(jobs)
-
-        if self.leaving_met=='delta' and jobs_delta[k_sub] >= self.cur_delta and self.adaptive_bundle:
-            self.S    = np.concatenate((self.S, self.cur_x[np.newaxis]))
-            self.fS   = np.concatenate((self.fS, self.cur_fx[np.newaxis]))
-            self.dfS  = np.concatenate((self.dfS, oracle['df'][np.newaxis]))
-            self.d2fS = np.concatenate((self.d2fS, oracle['d2f'][np.newaxis]))
-            self.update_k()
-
-            # old_delta = self.cur_delta.copy()
-
-            self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver,eng=self.eng)
-
-            # if self.cur_delta > old_delta:
-            #     raise Exception('delta increased')
-        else:
+        k_sub = get_leaving(self, oracle) # Finding leaving index
+        if k_sub:
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
