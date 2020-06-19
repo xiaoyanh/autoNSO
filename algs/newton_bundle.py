@@ -214,7 +214,13 @@ class NewtonBundle(OptAlg):
         self.k = self.S.shape[0]
         self.D = diags([1, -1], offsets=[0, 1], shape=(self.k - 1, self.k)).toarray()
 
-        self.name = 'NewtonBundle (bund-sz=' + str(self.k)
+        met_dict = {'delta' : r'$\Theta$',
+                    'grad_dist' : r'max$|\cdot - \nabla f(x)|$',
+                    'cayley_menger'   : 'Cayley-Menger'}
+
+        self.name = 'NewtonBundle '
+        self.name += '(met='+met_dict[self.leaving_met]+')'
+        self.name += '(bund-sz=' + str(self.k)
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'
