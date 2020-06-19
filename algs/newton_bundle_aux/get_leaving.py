@@ -18,8 +18,12 @@ def get_leaving(obj, oracle):
     elif obj.leaving_met == 'grad_dist':
         k_sub = np.argmin(np.linalg.norm(obj.dfS - oracle['df'],axis=1))
     elif obj.leaving_met == 'cayley_menger':
-        simplex_vol(obj.dfS)
-        pass
+        def get_vol(i):
+            dfS_ = obj.dfS.copy()
+            dfS_[i,:] = oracle['f']
+            return simplex_vol(dfS_)
+        jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), obj.k))(delayed(get_vol)(i) for i in range(obj.k))
+        k_sub = np.argmax(jobs)
 
     if obj.leaving_met == 'delta' and jobs_delta[k_sub] >= obj.cur_delta and obj.adaptive_bundle:
         obj.S = np.concatenate((obj.S, obj.cur_x[np.newaxis]))
