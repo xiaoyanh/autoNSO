@@ -2,7 +2,8 @@ import numpy as np
 import multiprocessing
 from IPython import embed
 from joblib import Parallel, delayed
-from utils.cayley_menger import simplex_vol
+# import utils.cayley_menger as cm
+import utils.cayley_mengerC as cm
 from algs.newton_bundle_aux.get_lambda import get_lam, get_LS
 
 def get_leaving(obj, oracle):
@@ -21,7 +22,7 @@ def get_leaving(obj, oracle):
         def get_vol(i):
             dfS_ = obj.dfS.copy()
             dfS_[i,:] = oracle['f']
-            return simplex_vol(dfS_)
+            return cm.simplex_vol(dfS_)
         jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(), obj.k))(delayed(get_vol)(i) for i in range(obj.k))
         k_sub = np.argmax(jobs)
 

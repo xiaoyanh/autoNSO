@@ -1,4 +1,5 @@
 import os
+import torch
 import numpy as np
 import matlab.engine
 import multiprocessing
@@ -139,7 +140,6 @@ class NewtonBundle(OptAlg):
             b[0:self.x_dim] = np.einsum('s,sij,sj->i',self.lam_cur,self.d2fS,self.S)
             b[self.x_dim]   = 1
             b[self.x_dim+1:] = b_l
-
             self.cur_x = (pinv2(A, cond=self.pinv_cond) @ b)[0:self.x_dim]
 
         # self.vio = np.linalg.norm(A @ self.cur_x - b)
@@ -154,7 +154,7 @@ class NewtonBundle(OptAlg):
         self.fx_step = (old_fx - self.cur_fx)
 
         if self.store_hessian:
-            self.hessian = oracle['d2f']
+            self.hessian = np.nan_to_num(oracle['d2f'],nan=1e16)
 
         self.update_bundle(oracle) # Update the bundle
 
@@ -215,7 +215,7 @@ class NewtonBundle(OptAlg):
         self.D = diags([1, -1], offsets=[0, 1], shape=(self.k - 1, self.k)).toarray()
 
         met_dict = {'delta' : r'$\Theta$',
-                    'grad_dist' : r'max$|\cdot - \nabla f(x)|$',
+                    'grad_dist' : r'min$|\cdot - \nabla f(x)|$',
                     'cayley_menger'   : 'Cayley-Menger'}
 
         self.name = 'NewtonBundle '
@@ -233,7 +233,7 @@ class NewtonBundle(OptAlg):
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
-            self.d2fS[k_sub, :, :] = oracle['d2f']
+            self.d2fS[k_sub, :, :] = np.nan_to_num(oracle['d2f'],nan=1e16)
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
