@@ -5,7 +5,6 @@ from numba import njit
 
 from numba.pycc import CC
 
-
 cc = CC('cayley_mengerC')
 cc.verbose = True
 
