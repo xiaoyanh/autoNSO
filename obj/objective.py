@@ -7,6 +7,7 @@ Created on Mon Sep  2 10:18:22 2019
 """
 
 import torch
+import numpy as np
 from IPython import embed
 from torch.autograd.functional import hessian
 
@@ -63,7 +64,7 @@ class Objective:
             assert type(x) == torch.Tensor
             return {'f'  : self.oracle_f(),
                     'df' : self.oracle_df(),
-                    'd2f': hessian(self.obj_func,self.x),
+                    'd2f': np.nan_to_num(hessian(self.obj_func,self.x).data.numpy(),1e16)
                     }
         
     def oracle_f(self):

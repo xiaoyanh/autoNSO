@@ -17,7 +17,8 @@ from algs.newton_bundle_aux.aug_bund import create_bundle
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
-                 store_hessian=False, leaving_met='delta', solver='MOSEK', adaptive_bundle=False, **kwargs):
+                 store_hessian=False, leaving_met='delta', solver='MOSEK', adaptive_bundle=False,
+                 eng = None, **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -42,13 +43,16 @@ class NewtonBundle(OptAlg):
         assert leaving_met in ['delta','ls','grad_dist','cayley_menger']
 
         if self.solver == 'MATLAB':
-            print("Starting parallel pool for MATLAB solver", flush=True)
+            if eng is None:
+                print("Starting parallel pool for MATLAB solver", flush=True)
 
-            threads = multiprocessing.cpu_count()/2
-            self.eng = matlab.engine.start_matlab()
-            self.eng.parpool('local', threads)
-            self.eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
-            print('Started!', flush=True)
+                threads = multiprocessing.cpu_count()/2
+                self.eng = matlab.engine.start_matlab()
+                self.eng.parpool('local', threads)
+                self.eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
+                print('MATLAB Started!', flush=True)
+            else:
+                self.eng = eng
         else:
             self.eng=None
 
@@ -154,7 +158,7 @@ class NewtonBundle(OptAlg):
         self.fx_step = (old_fx - self.cur_fx)
 
         if self.store_hessian:
-            self.hessian = np.nan_to_num(oracle['d2f'],nan=1e16)
+            self.hessian = oracle['d2f']
 
         self.update_bundle(oracle) # Update the bundle
 
@@ -228,12 +232,20 @@ class NewtonBundle(OptAlg):
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
     def update_bundle(self, oracle):
+        if self.leaving_met != 'delta':
+            eng_tmp = self.eng
+            delattr(self,'eng')
+
         k_sub = get_leaving(self,oracle)
+
+        if self.leaving_met != 'delta':
+            self.eng = eng_tmp
+
         if k_sub is not None:
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
-            self.d2fS[k_sub, :, :] = np.nan_to_num(oracle['d2f'],nan=1e16)
+            self.d2fS[k_sub, :, :] = oracle['d2f']
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)

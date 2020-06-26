@@ -107,7 +107,7 @@ m=size(P,2); % bundle size
         end
 
         full_w = zeros(m,1);
-        full_w(SIdx(1:(numInSet))) = w;
+        full_w(SIdx(1:(numInSet))) = w(1:(numInSet));
 
         norm_x = norm(x);
     end

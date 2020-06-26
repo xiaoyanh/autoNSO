@@ -17,13 +17,13 @@ from obj.obj_funcs2 import Matrix4D
 n = 50
 m = 25
 
+# obj_type = 'Strongly Convex'
 # obj_type = 'Partly Smooth'
-obj_type = 'Half-and-Half'
+# obj_type = 'Matrix 4D'
+# obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 2D'
 # obj_type = 'Partly Smooth 3D'
-# obj_type = 'Convex 3D'
-# obj_type = 'Matrix 4D'
-# obj_type = 'Strongly Convex'
+obj_type = 'Convex 3D'
 # Criteria for switching to newton-bundle
 
 def crit_c3(met):
@@ -43,23 +43,22 @@ solver = 'MOSEK'
 if obj_type == 'Strongly Convex':
     titl = obj_type + ': {}-dimensional, max over {} quartics'.format(n, 10)
     objective = stronglyconvex(n=n,k=10,oracle_output='both'); mu_sz=1e3; beta_sz=1e-5; iters=125
-    k = 10
-    k_val = 10
+    k = None
     bfgs_lr = 0.01
 
     def crit_sc(met):
-        return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+        return (met.cur_fx is not None) and (met.total_serious > 81)
 
     crit = crit_sc
 
-    # naive_prune = True
+    naive_prune = True
     if naive_prune:
-        k = None
-        bundle_prune = None
+        k = 10
+        solver = 'MATLAB'
+        mu_sz = 1e3
+        bundle_prune = 'lambda'
+        iters = 300
 
-        def crit_ps(met):
-            # return (met.cur_fx is not None) and (met.cur_fx < true_val + 1e-1)
-            return (met.fx_step>0) and (met.fx_step<1e-2)
 elif obj_type == 'Non-Convex':
     titl = obj_type + r': $R^{}$, sum over {} |quartics|'.format(n, 10)
     objective = nonconvex(n=n,k=10,oracle_output='both'); mu_sz=1e4; beta_sz=1e-5; iters = 200
@@ -67,9 +66,8 @@ elif obj_type == 'Non-Convex':
 elif obj_type == 'Partly Smooth': # This is the only case that doesn't work
     titl = obj_type + ': eig-max sum of {}, {}x{} matrices'.format(n, m, m)
     objective, true_val, true_mult = partlysmooth(n=n,m=m,oracle_output='both');
-    mu_sz=1e1; beta_sz=1e-5; iters = 300
+    mu_sz=1; beta_sz=1e-5; iters = 400
     k = int((true_mult * (true_mult+1)/2.0) - 1)
-    k_val = int((true_mult * (true_mult+1)/2.0) - 1)
     # fixed_shift = -true_val
     rescaled = True
     bfgs_lr = 0.01
@@ -78,30 +76,13 @@ elif obj_type == 'Partly Smooth': # This is the only case that doesn't work
     solver = 'MATLAB'
 
     def crit_ps(met):
-        return (met.cur_fx is not None) and (met.cur_fx < true_val + 1e-6)
-
-    # leaving_met = 'grad_dist'
-    if leaving_met == 'grad_dist':
-        solver = 'MOSEK'
-        iters  = 400
+        return (met.is_serious) and (met.latest_null > 20)
 
     naive_prune = True
     if naive_prune:
-        k = None
-        mu_sz = 1e2;
-        beta_sz = 1e-5;
-        iters = 400
-        bundle_prune = None
-
-        def crit_ps(met):
-            # return (met.cur_fx is not None) and (met.cur_fx < true_val + 1e-1)
-            return (met.fx_step>0) and (met.fx_step<1e-2)
-
-    # leaving_met = 'cayley_menger'
-    if leaving_met == 'cayley_menger':
-        solver = 'MOSEK'
-        # k = int((true_mult * (true_mult+1)/2.0) - 1)
-
+        solver = 'MATLAB'
+        mu_sz = 1e1
+        bundle_prune = 'lambda'
     crit = crit_ps
 
 elif obj_type == 'Partly Smooth 3D':
@@ -111,9 +92,17 @@ elif obj_type == 'Partly Smooth 3D':
 
 
     def crit_ps3(met):
-        return (met.cur_fx is not None) and (met.cur_fx < 1e-4)
+        return (met.cur_fx is not None) and (met.total_serious > 2)
     crit = crit_ps3
     k = 3
+
+    naive_prune = True
+    if naive_prune:
+        k = None
+        solver = 'MATLAB'
+        mu_sz = 0.1
+        bundle_prune = 'lambda'
+
 elif obj_type == 'Partly Smooth 2D':
     titl = obj_type + r': $\max(3x^2 + y^2 - y , x^2 + y^2 + y)$'
     objective = PartlySmooth2D; mu_sz=1e1; beta_sz=1e-5; iters = 75
@@ -139,13 +128,20 @@ elif obj_type == 'Convex 3D':
 
 
     def crit_c3(met):
-        return (met.cur_fx is not None) and (met.cur_fx < 0.1)
+        return (met.cur_fx is not None) and (met.total_serious > 1)
     crit = crit_c3
+
+    naive_prune = True
+    if naive_prune:
+        k = None
+        solver = 'MATLAB'
+        mu_sz = 1
+        bundle_prune = 'lambda'
 
 elif obj_type == 'Matrix 4D':
     titl = obj_type + r': Max-eigval of $3 \times 3$ matrix; 4D input'
     objective = Matrix4D;
-    mu_sz = 1e1;
+    mu_sz = 1;
     beta_sz = 1e-5;
     iters = 100
     n = 4
@@ -155,24 +151,16 @@ elif obj_type == 'Matrix 4D':
     bfgs_lr = 0.1
 
     def crit_m4(met):
-        return (met.cur_fx is not None) and (met.cur_fx < 1.5)
+        return (met.cur_fx is not None) and (met.total_serious > 2)
     crit = crit_m4
-
-    # leaving_met = 'grad_dist'
-    # leaving_met = 'cayley_menger'
-    if leaving_met in ['grad_dist','cayley_menger']:
-        solver = 'MOSEK'
 
     naive_prune = True
     if naive_prune:
         k = None
-        k_val = 3
-        def crit_m4_naive(met):
-            return (met.cur_fx is not None) and (met.cur_fx < 1 + 1e-3)
-
-        iters = 100
-        bundle_prune = None
-        crit  = crit_m4_naive
+        solver = 'MATLAB'
+        mu_sz = 1
+        bundle_prune = 'lambda'
+        iters = 75
 
 elif obj_type == 'Half-and-Half':
     n = 4
@@ -181,7 +169,7 @@ elif obj_type == 'Half-and-Half':
     objective = halfandhalf(n=n); mu_sz=1; beta_sz=1e-5; iters = 75
 
     def crit_hh(met):
-        return (met.cur_fx is not None) and (met.cur_fx < 1e-2)
+        return (met.cur_fx is not None) and (met.total_serious > 4)
     crit = crit_hh
 
     naive_prune = True
@@ -219,33 +207,8 @@ optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2
 optAlg0.optimize()
 alg_list += [optAlg0]
 
-# solver = 'MOSEK'
-#
-optAlg3 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=proj_hess,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver=solver, store_hessian=True, leaving_met='grad_dist', eng=eng)
-optAlg3.optimize()
-alg_list += [optAlg3]
-
-optAlg4 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=proj_hess,
-                       start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver=solver, store_hessian=True, leaving_met='cayley_menger', eng=eng)
-optAlg4.optimize()
-alg_list += [optAlg4]
 
 opt_plot = OptPlot(opt_algs=alg_list, resolution=100,
                    plot_lims={'x1_max':1e-3,'x2_max':1e-3,'x3_max':1e-3,'x1_min':-1e-3,'x2_min':-1e-3,'x3_min':-1e-3})
 
-opt_plot.plotValue(title=titl, rescaled=rescaled, val_list=['path_fx'], fixed_shift=fixed_shift)
-
-# opt_plot.plotValue(title=titl, rescaled=rescaled, val_list=['path_fx','path_diam','path_delta'], fixed_shift=fixed_shift)
-#
-# embed()
-# opt_plot2 = OptPlot(opt_algs=[optAlg1], resolution=100,
-#                    plot_lims={'x1_max':1e-3,'x2_max':1e-3,'x3_max':1e-3,'x1_min':-1e-3,'x2_min':-1e-3,'x3_min':-1e-3})
-# opt_plot2.plotValue(title=titl, rescaled=rescaled, val_list=['path_hess'], fixed_shift=fixed_shift)
-#
-# opt_plot3 = OptPlot(opt_algs=[optAlg0], resolution=100,
-#                    plot_lims={'x1_max':1e-3,'x2_max':1e-3,'x3_max':1e-3,'x1_min':-1e-3,'x2_min':-1e-3,'x3_min':-1e-3})
-# opt_plot3.plotValue(title=titl, rescaled=rescaled, val_list=['path_hess'], fixed_shift=fixed_shift)
-#
+opt_plot.plotValue(title=titl, rescaled=rescaled, val_list=['path_fx','path_delta','path_diam'], fixed_shift=fixed_shift)

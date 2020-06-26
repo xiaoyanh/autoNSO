@@ -85,6 +85,7 @@ def get_lam(dfS,new_df=None, solver='MOSEK', eng=None):
                 dfS_ = dfS.copy()
                 dfS_[i,:] = new_df
                 return get_lam(dfS_, solver=solver)
+
             jobs = Parallel(n_jobs=min(multiprocessing.cpu_count(),k))(delayed(conv_size)(i) for i in range(k))
 
             jobs_delta = np.array([jobs[i][0] for i in range(k)])

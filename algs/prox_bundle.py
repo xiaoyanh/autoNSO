@@ -43,9 +43,16 @@ class ProxBundle(OptAlg):
         self.mu = mu
         self.null_k = null_k
         self.name = 'ProxBundle'
-        self.name += ' (mu=' + str(self.mu) + ',null-k=' + str(self.null_k) + ')'
         self.prune = prune
         self.naive_prune = naive_prune
+        if self.prune:
+            if self.naive_prune:
+                self.name += ' [Naive]'
+            else:
+                self.name += ' [Drop Inactive]'
+        else:
+            self.name += ' [No Drops]'
+        self.name += ' (mu=' + str(self.mu) + ',null-k=' + str(self.null_k) + ')'
         self.active_thres = active_thres
         self.solver = solver
 
@@ -60,6 +67,8 @@ class ProxBundle(OptAlg):
         self.total_serious      = 0
         self.total_null         = 0
         self.ignore_null        = ignore_null
+        self.latest_null        = 0
+        self.is_serious = False
 
         # Some other useful info
         self.cur_tight = 0
@@ -134,7 +143,13 @@ class ProxBundle(OptAlg):
                 self.tight_x += [self.cur_tight]
 
             self.total_serious += 1
+            self.latest_null += 1
+            self.is_serious = True
         else:
+            if self.is_serious:
+                self.latest_null = 0
+                self.is_serious = False
+            self.latest_null += 1
             self.total_null += 1
 
         if not self.ignore_null:

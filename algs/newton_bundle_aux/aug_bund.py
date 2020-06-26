@@ -43,7 +43,10 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
             active = active_from_vec(rank, warm_start['duals'])
         elif bundle_prune == 'lambda':
             _, tmp_lam = get_lam(obj.dfS, solver=obj.solver, eng=obj.eng)
-            rank = sum(tmp_lam > obj.rank_thres * max(tmp_lam))
+            if obj.solver == 'MATLAB':
+                rank = sum((tmp_lam > 0))
+            else:
+                rank = sum(tmp_lam > obj.rank_thres * max(tmp_lam))
             active = active_from_vec(rank, tmp_lam)
         elif bundle_prune == 'log_lambda':
             _, tmp_lam = get_lam(obj.dfS, solver=obj.solver, eng=obj.eng)
