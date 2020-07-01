@@ -1,4 +1,5 @@
 dev_script.py
 simple_examples/run_newton_bundle2.py
 simple_examples/run_newton_bundle3.py
+algs/prox_bundle2.py
 obj/obj_funcs2.py
