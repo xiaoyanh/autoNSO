@@ -50,8 +50,8 @@ class TorchAlg(OptAlg):
             # Update paths and bundle constraints
             self.cur_iter += 1
 
-            self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
-            self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
+            self.path_x = np.vstack([self.path_x, self.cur_x])
+            self.path_fx = np.vstack([self.path_fx, self.cur_fx])
         else:
             self.path_x = self.cur_x[np.newaxis]
             self.path_fx = self.cur_fx[np.newaxis]

@@ -235,7 +235,7 @@ class OptPlot:
 
         for val in val_list:
 
-            all_vals = np.array([])
+            all_vals = np.array([],dtype=np.float64).reshape(0,1)
             for alg in self.opt_algs:
                 if not hasattr(alg, val):
                     continue
@@ -251,7 +251,8 @@ class OptPlot:
                 alg_val = getattr(alg,val)
                 if val in rolling_min:
                     alg_val = np.fmin.accumulate(alg_val)
-                all_vals = np.concatenate((all_vals,alg_val))
+                    all_vals = np.vstack([all_vals,alg_val])
+
 
             if len(all_vals) == 0:
                 warnings.warn('The value {} is empty!'.format(val))
@@ -285,9 +286,12 @@ class OptPlot:
                 if val in rolling_min:
                     y = np.fmin.accumulate(y)
 
-                ax.plot(np.arange(alg.total_iter+1), y,
-                        color=next(palette), marker=next(markers), alpha=.4,
-                        label= prefix + lab_dict[val] + alg.name + suffix)
+                try:
+                    ax.plot(np.arange(alg.total_iter+1), y,
+                            color=next(palette), marker=next(markers), alpha=.4,
+                            label= prefix + lab_dict[val] + alg.name + suffix)
+                except:
+                    embed()
 
         ax.set_yscale('log')
         ax.set_xlabel('Iteration')
