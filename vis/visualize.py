@@ -251,7 +251,10 @@ class OptPlot:
                 alg_val = getattr(alg,val)
                 if val in rolling_min:
                     alg_val = np.fmin.accumulate(alg_val)
-                    all_vals = np.vstack([all_vals,alg_val])
+                    try:
+                        all_vals = np.vstack([all_vals,alg_val])
+                    except:
+                        embed()
 
 
             if len(all_vals) == 0:

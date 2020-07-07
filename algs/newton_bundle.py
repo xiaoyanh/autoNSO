@@ -63,6 +63,10 @@ class NewtonBundle(OptAlg):
             self.cur_x = self.x0
             self.S = None
         else:
+            if type(warm_start) == list:
+                assert len(warm_start) == 1
+                warm_start = warm_start[0]
+
             self.cur_x      = warm_start['x']
             self.cur_iter   = warm_start['iter']
             self.x0         = None
@@ -76,9 +80,9 @@ class NewtonBundle(OptAlg):
                 raise Exception('Start type must me bundle or random')
 
             self.path_x = np.zeros([self.cur_iter+1, self.x_dim]) * np.nan
-            self.path_fx = np.zeros([self.cur_iter+1]) * np.nan
-            self.path_diam = np.zeros([self.cur_iter+1]) * np.nan
-            self.path_delta = np.zeros([self.cur_iter+1]) * np.nan
+            self.path_fx = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
+            self.path_diam = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
+            self.path_delta = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
             # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
 
             if self.store_hessian:
@@ -178,21 +182,15 @@ class NewtonBundle(OptAlg):
             # Update paths and bundle constraints
             self.cur_iter += 1
 
-            self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
-            self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
-            self.path_diam = np.concatenate((self.path_diam, self.cur_diam[np.newaxis]))
-            self.path_delta = np.concatenate((self.path_delta, self.cur_delta[np.newaxis]))
+            self.path_x = np.vstack([self.path_x, self.cur_x])
+            self.path_fx = np.vstack([self.path_fx, self.cur_fx])
+            self.path_diam = np.vstack([self.path_diam, self.cur_diam])
+            self.path_delta = np.vstack([self.path_delta, self.cur_delta])
             # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
 
             if self.store_hessian:
                 self.path_hess = np.concatenate((self.path_hess, np.linalg.svd(self.hessian,compute_uv=False)[np.newaxis]))
-        else: # First iteration, do not increment
-            self.path_x = self.cur_x[np.newaxis]
-            self.path_fx = self.cur_fx[np.newaxis]
-            self.path_diam = self.cur_diam[np.newaxis]
-            self.path_delta = self.cur_delta[np.newaxis]
-            # self.path_vio = self.cur_vio[np.newaxis]
-
+        else:
             if self.store_hessian:
                 self.path_hess = np.linalg.svd(self.hessian,compute_uv=False)[np.newaxis]
 
