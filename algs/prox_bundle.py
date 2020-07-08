@@ -3,31 +3,7 @@ import cvxpy as cp
 
 from IPython import embed
 from algs.optAlg import OptAlg
-
-tol = 1e-15
-m_params = {'MSK_DPAR_INTPNT_QO_TOL_DFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_INFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_MU_RED': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_NEAR_REL': 10,
-            'MSK_DPAR_INTPNT_QO_TOL_PFEAS': tol,
-            'MSK_DPAR_INTPNT_QO_TOL_REL_GAP': tol,
-            }
-# m_params = {'MSK_DPAR_INTPNT_CO_TOL_DFEAS': tol,
-#             'MSK_DPAR_INTPNT_CO_TOL_INFEAS': tol,
-#             'MSK_DPAR_INTPNT_CO_TOL_MU_RED': tol,
-#             'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 10,
-#             'MSK_DPAR_INTPNT_CO_TOL_PFEAS': tol,
-#             'MSK_DPAR_INTPNT_CO_TOL_REL_GAP': tol,
-#             # 'MSK_IPAR_OPTIMIZER': 'CONIC',
-#             # 'MSK_IPAR_INTPNT_MAX_ITERATIONS': int(1e3),
-#             }
-
-
-# GUROBI
-g_params = {'BarConvTol': 1e-10,
-            'BarQCPConvTol': 1e-10,
-            'FeasibilityTol': 1e-9,
-            'OptimalityTol': 1e-9,}
+from algs.newton_bundle_aux.params import m_params, g_params
 
 class ProxBundle(OptAlg):
     def __init__(self, objective, mu=1.0, null_k=0.5, ignore_null=False, prune=False, active_thres=1e-12,
@@ -63,7 +39,11 @@ class ProxBundle(OptAlg):
         # Add one bundle point to initial point
         self.cur_x = self.x0
         self.cur_y = self.x0  # the auxiliary variables will null values
-        self.path_y = None
+        self.path_y = np.array([],dtype=np.float64).reshape(0,self.x_dim)
+        self.dfS = np.array([], dtype=np.float64).reshape(0, self.x_dim)  # gradients
+        self.cur_rank = None
+        self.path_fx = np.array([], dtype=np.float64).reshape(0, 1)
+        self.path_rank = np.array([],dtype=np.float64).reshape(0,1)
         self.total_serious      = 0
         self.total_null         = 0
         self.ignore_null        = ignore_null
@@ -133,12 +113,8 @@ class ProxBundle(OptAlg):
             if self.ignore_null:
                 self.cur_fx = orcl_call['f'].copy()
                 self.update_fx_step()
-                if self.path_x is not None:
-                    self.path_x = np.concatenate((self.path_x, self.cur_x[np.newaxis]))
-                    self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
-                else:
-                    self.path_x = self.cur_x[np.newaxis]
-                    self.path_fx = self.cur_fx[np.newaxis]
+                self.path_x = np.vstack([self.path_x, self.cur_x])
+                self.path_fx = np.vstack([self.path_fx, self.cur_fx])
 
                 self.tight_x += [self.cur_tight]
 
@@ -156,11 +132,7 @@ class ProxBundle(OptAlg):
             self.path_x = self.path_y
 
             self.update_fx_step()
-
-            if self.path_fx is not None:
-                self.path_fx = np.concatenate((self.path_fx, self.cur_fx[np.newaxis]))
-            else:
-                self.path_fx = self.cur_fx[np.newaxis]
+            self.path_fx = np.vstack([self.path_fx, self.cur_fx])
 
         super(ProxBundle, self).update_params() # Check fx_step size save bundle if necessary
 

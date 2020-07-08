@@ -17,9 +17,9 @@ m = 25
 # Objectives to Try
 # obj_type = 'Half-and-Half'
 # obj_type = 'Partly Smooth 2D'
-# obj_type = 'Partly Smooth 3D'
+obj_type = 'Partly Smooth 3D'
 # obj_type = 'Convex 3D'
-obj_type = 'Strongly Convex'
+# obj_type = 'Strongly Convex'
 
 # Criteria for switching to newton-bundle
 def crit_ps(met):
