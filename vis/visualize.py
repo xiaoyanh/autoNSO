@@ -254,7 +254,7 @@ class OptPlot:
                     try:
                         all_vals = np.vstack([all_vals,alg_val])
                     except:
-                        embed()
+                        raise Exception('Concatenation of values failed')
 
 
             if len(all_vals) == 0:
