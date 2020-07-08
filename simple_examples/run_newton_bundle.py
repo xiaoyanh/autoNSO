@@ -96,7 +96,7 @@ alg_list += [optAlg1]
 
 optAlg0 = NewtonBundle(objective, x0=x0, max_iter=iters, k=k, warm_start=optAlg2.saved_bundle, proj_hess=False,
                        start_type='bundle', bundle_prune=bundle_prune, rank_thres=rank_thres, pinv_cond=pinv_cond,
-                       solver='MOSEK')
+                       solver='MOSEK', save_multiple=False)
 optAlg0.optimize()
 alg_list += [optAlg0]
 

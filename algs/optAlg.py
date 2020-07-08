@@ -7,7 +7,7 @@ from IPython import embed
 from numpy import format_float_scientific as ffs
 
 class OptAlg:
-    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None, save_multiple=True):
+    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None, save_multiple=False):
         assert x0 is not None
 
         if type(x0) is not np.ndarray:
