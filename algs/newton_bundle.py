@@ -62,6 +62,7 @@ class NewtonBundle(OptAlg):
         if warm_start is None:
             self.cur_x = self.x0
             self.S = None
+            self.start_iter = 0
         else:
             if type(warm_start) == list:
                 assert len(warm_start) == 1
@@ -69,6 +70,7 @@ class NewtonBundle(OptAlg):
 
             self.cur_x      = warm_start['x']
             self.cur_iter   = warm_start['iter']
+            self.start_iter = warm_start['iter']
             self.x0         = None
             self.x_dim      = len(self.cur_x)
 
@@ -223,6 +225,7 @@ class NewtonBundle(OptAlg):
         self.name = 'NewtonBundle '
         self.name += '(met='+met_dict[self.leaving_met]+')'
         self.name += '(bund-sz=' + str(self.k)
+        self.name += ', t0='+str(self.start_iter)
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'

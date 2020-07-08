@@ -7,7 +7,7 @@ from IPython import embed
 from numpy import format_float_scientific as ffs
 
 class OptAlg:
-    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None):
+    def __init__(self, objective, max_iter = 1000, x0 = None, verbose=True, switch_crit=None, save_multiple=True):
         assert x0 is not None
 
         if type(x0) is not np.ndarray:
@@ -40,6 +40,7 @@ class OptAlg:
         # function to trigger saving the checkpoint
         self.switch_crit = switch_crit
         self.saved_bundle = None
+        self.save_multiple = save_multiple
     
     def optimize(self):
 
@@ -65,9 +66,9 @@ class OptAlg:
         return False
     
     def update_params(self):
-        if self.switch_crit is not None and self.switch_crit(self) and self.saved_bundle is None:
-            self.save_bundle()
-        pass
+        if self.switch_crit is not None and self.switch_crit(self):
+            if (self.saved_bundle is None) or self.save_multiple:
+                self.save_bundle()
 
     def save_bundle(self):
         pass
