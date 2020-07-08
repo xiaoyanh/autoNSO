@@ -10,6 +10,9 @@ def get_leaving(obj, oracle):
     if obj.leaving_met == 'delta':
         jobs_delta, jobs_lambda = get_lam(obj.dfS, new_df=oracle['df'], solver=obj.solver, eng=obj.eng)
         k_sub = np.argmin(jobs_delta)
+        if len(jobs_lambda.shape) < 2: # when there is only one bundle vector
+            jobs_lambda = jobs_lambda.reshape(-1,1)
+            jobs_delta  = jobs_delta.reshape(-1)
         obj.lam_cur = jobs_lambda[k_sub, :]
     elif obj.leaving_met == 'ls':
         ls_size = lambda i: get_LS(obj.S, obj.fS, obj.dfS,

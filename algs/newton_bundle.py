@@ -111,6 +111,7 @@ class NewtonBundle(OptAlg):
 
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
+        self.lam_cur = self.lam_cur.reshape(-1)
         self.update_k()
 
         self.update_params()
