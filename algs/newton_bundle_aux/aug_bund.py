@@ -1,5 +1,6 @@
 import numpy as np
 from IPython import embed
+from scipy.linalg import qr
 
 from algs.newton_bundle_aux.get_lambda import get_lam
 
@@ -16,7 +17,7 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
         obj.d2fS[i, :, :] = oracle['d2f']
 
     if warm_start and start_type == 'bundle' and (bundle_prune is not None):
-        assert bundle_prune in ['lambda', 'svd', 'log_lambda', 'log_svd', 'svd2', 'duals']
+        assert bundle_prune in ['lambda', 'svd', 'log_lambda', 'log_svd', 'svd2', 'duals','qr']
         print('Preprocessing bundle with {}.'.format(bundle_prune), flush=True)
 
         def active_from_vec(rank, vec):
@@ -37,12 +38,15 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
             sig = np.linalg.svd(np.concatenate((obj.dfS, np.ones(obj.k)[:, np.newaxis]), axis=1), compute_uv=False)
             rank = int(1 * sum(sig > max(sig) * obj.rank_thres))
             active = active_from_vec(rank, warm_start['duals'])
+        elif bundle_prune == 'qr':
+            q, r, p = qr(obj.dfS.T,pivoting=True)
+            active = p[0:warm_start['rank']]
         elif bundle_prune == 'duals':
             assert obj.k is not None
             rank = obj.k
             active = active_from_vec(rank, warm_start['duals'])
         elif bundle_prune == 'lambda':
-            _, tmp_lam = get_lam(obj.dfS, solver=obj.solver, eng=obj.eng)
+            _, tmp_lam = get_lam(obj.dfS/np.linalg.norm(obj.dfS,axis=1,keepdims=True), solver=obj.solver, eng=obj.eng)
             if obj.solver == 'MATLAB':
                 rank = sum((tmp_lam > 0))
             else:
