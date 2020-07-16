@@ -39,7 +39,7 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
             rank = int(1 * sum(sig > max(sig) * obj.rank_thres))
             active = active_from_vec(rank, warm_start['duals'])
         elif bundle_prune == 'qr':
-            q, r, p = qr(obj.dfS.T,pivoting=True)
+            q, r, p = qr(np.hstack([obj.dfS,np.ones((obj.dfS.shape[0],1))]).T,pivoting=True)
             active = p[0:warm_start['rank']]
         elif bundle_prune == 'duals':
             assert obj.k is not None
