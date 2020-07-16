@@ -12,13 +12,14 @@ from utils.diameter import get_diam
 from algs.newton_bundle_aux.get_lambda import get_lam
 from algs.newton_bundle_aux.get_leaving import get_leaving
 from algs.newton_bundle_aux.aug_bund import create_bundle
+from algs.newton_bundle_aux.approx_hessian import hess_approx_cI
 
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
                  store_hessian=False, leaving_met='delta', solver='MOSEK', adaptive_bundle=False,
-                 eng = None, **kwargs):
+                 eng = None, hessian_type='autograd', **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -36,7 +37,10 @@ class NewtonBundle(OptAlg):
         self.store_hessian = store_hessian
         self.leaving_met = leaving_met
         self.adaptive_bundle = adaptive_bundle
+        self.hessian_type = hessian_type
         self.k = k
+
+        assert self.hessian_type in ['autograd','cI']
 
         self.solver = solver
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
@@ -247,7 +251,11 @@ class NewtonBundle(OptAlg):
             self.S[k_sub, :] = self.cur_x
             self.fS[k_sub]   = self.cur_fx
             self.dfS[k_sub, :] = oracle['df']
-            self.d2fS[k_sub, :, :] = oracle['d2f']
+
+            if self.hessian_type == 'cI':
+                self.d2fS[k_sub, :, :] = hess_approx_cI(oracle['d2f'])
+            else:
+                self.d2fS[k_sub, :, :] = oracle['d2f']
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)

@@ -1,6 +1,7 @@
 import numpy as np
 from IPython import embed
 from scipy.linalg import qr
+from algs.newton_bundle_aux.approx_hessian import hess_approx_cI
 
 from algs.newton_bundle_aux.get_lambda import get_lam
 
@@ -14,7 +15,10 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
         oracle = obj.objective.call_oracle(obj.S[i, :])
         obj.fS[i] = oracle['f']
         obj.dfS[i, :] = oracle['df']
-        obj.d2fS[i, :, :] = oracle['d2f']
+        if obj.hessian_type == 'cI':
+            obj.d2fS[i, :, :] = hess_approx_cI(oracle['d2f'])
+        else:
+            obj.d2fS[i, :, :] = oracle['d2f']
 
     if warm_start and start_type == 'bundle' and (bundle_prune is not None):
         assert bundle_prune in ['lambda', 'svd', 'log_lambda', 'log_svd', 'svd2', 'duals','qr']
