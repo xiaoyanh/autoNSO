@@ -19,7 +19,7 @@ class NewtonBundle(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, proj_hess=False, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
                  store_hessian=False, leaving_met='delta', solver='MOSEK', adaptive_bundle=False,
-                 eng = None, hessian_type='autograd', **kwargs):
+                 eng = None, hessian_type='autograd', mu_sz=None, **kwargs):
         objective.oracle_output='hess+'
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
@@ -39,6 +39,7 @@ class NewtonBundle(OptAlg):
         self.adaptive_bundle = adaptive_bundle
         self.hessian_type = hessian_type
         self.k = k
+        self.mu = mu_sz
 
         assert self.hessian_type in ['autograd','cI']
 
@@ -234,6 +235,8 @@ class NewtonBundle(OptAlg):
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'
+        if self.hessian_type == 'cI':
+            self.name += '(First-Order)'
 
         print('Bundle Size Set to {}'.format(self.k), flush=True)
 
@@ -253,7 +256,8 @@ class NewtonBundle(OptAlg):
             self.dfS[k_sub, :] = oracle['df']
 
             if self.hessian_type == 'cI':
-                self.d2fS[k_sub, :, :] = hess_approx_cI(oracle['d2f'])
+                # self.d2fS[k_sub, :, :] = hess_approx_cI(oracle['d2f'])
+                self.d2fS[k_sub, :, :] = self.mu * np.eye(self.x_dim)
             else:
                 self.d2fS[k_sub, :, :] = oracle['d2f']
 

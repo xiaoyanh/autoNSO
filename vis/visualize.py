@@ -304,7 +304,10 @@ class OptPlot:
         if title is not None:
             ax.set_title(title)
         # plt.ion()
-        ax.set_ylim((min_f,max_f))
+        try:
+            ax.set_ylim((min_f,max_f))
+        except:
+            embed()
         np.set_printoptions(precision=2)
         ylabs = np.geomspace(min_f,max_f,num=5)
         ylabs_prt = ["{0:0.2e}".format(float(i)) for i in ylabs]
