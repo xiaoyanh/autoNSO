@@ -88,8 +88,10 @@ class NewtonBundle(OptAlg):
 
             self.path_x = np.zeros([self.cur_iter+1, self.x_dim]) * np.nan
             self.path_fx = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
+            self.path_fx_conv = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
             self.path_diam = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
             self.path_delta = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
+            self.path_conv_diff = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
             # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
 
             if self.store_hessian:
@@ -118,6 +120,9 @@ class NewtonBundle(OptAlg):
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
         self.lam_cur = self.lam_cur.reshape(-1)
         self.update_k()
+
+        self.cur_x_conv = self.lam_cur @ self.S
+        self.cur_fx_conv = self.objective.obj_func(self.cur_x_conv).item()
 
         self.update_params()
 
@@ -169,6 +174,10 @@ class NewtonBundle(OptAlg):
         self.cur_fx  = oracle['f']
         self.fx_step = (old_fx - self.cur_fx)
 
+        # Compare with convex combination
+        self.cur_x_conv = self.lam_cur @ self.S
+        self.cur_fx_conv = self.objective.obj_func(self.cur_x_conv).item()
+
         if self.store_hessian:
             self.hessian = oracle['d2f']
 
@@ -192,8 +201,11 @@ class NewtonBundle(OptAlg):
 
             self.path_x = np.vstack([self.path_x, self.cur_x])
             self.path_fx = np.vstack([self.path_fx, self.cur_fx])
+            self.path_fx_conv = np.vstack([self.path_fx_conv, self.cur_fx_conv])
             self.path_diam = np.vstack([self.path_diam, self.cur_diam])
             self.path_delta = np.vstack([self.path_delta, self.cur_delta])
+            self.path_conv_diff = np.vstack([self.path_conv_diff, abs(self.cur_fx_conv-self.cur_fx)])
+
             # self.path_vio = np.concatenate((self.path_vio, self.cur_delta[np.newaxis]))
 
             if self.store_hessian:

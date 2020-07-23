@@ -39,7 +39,7 @@ class OptAlg:
 
         # function to trigger saving the checkpoint
         self.switch_crit = switch_crit
-        self.saved_bundle = None
+        self.saved_bundle = []
         self.save_multiple = save_multiple
     
     def optimize(self):
@@ -67,7 +67,7 @@ class OptAlg:
     
     def update_params(self):
         if self.switch_crit is not None and self.switch_crit(self):
-            if (self.saved_bundle is None) or self.save_multiple:
+            if (len(self.saved_bundle)==0) or self.save_multiple:
                 self.save_bundle()
 
     def save_bundle(self):

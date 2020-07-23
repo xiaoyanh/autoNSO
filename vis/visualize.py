@@ -189,17 +189,21 @@ class OptPlot:
 
     # Plot for objective function of two inputs
     def plotValue(self, val_list=['path_fx'], title=None, rescaled=False, fixed_shift=0.0, ax=None,
-                  rolling_min=['path_fx','path_diam','path_delta']):
+                  rolling_min=['path_fx','path_diam','path_delta','path_fx_conv']):
         assert len(self.opt_algs) > 0
         val_list = [val_list] if isinstance(val_list,str) else val_list
         rolling_min = [rolling_min] if isinstance(val_list, str) else rolling_min
-        assert np.all([val in ['path_fx', 'step_size', 'path_diam', 'path_delta', 'path_vio', 'path_hess'] for val in val_list])
+        valid_measures = ['path_fx', 'step_size', 'path_diam', 'path_delta', 'path_vio', 'path_hess','path_fx_conv',
+                          'path_conv_diff']
+        assert np.all([val in valid_measures for val in val_list])
 
         lab_dict = {'path_fx': r"$f(x)$: ",
                     'step_size': r"$|x_k - x_{k+1}|$: ",
                     'path_diam': r"diam$(S)$: ",
                     'path_delta': r"$\Theta(S)$: ",
-                    'path_vio': r"$Vio.=|Ax - b|: "}
+                    'path_vio': r"$Vio.=|Ax - b|: ",
+                    'path_fx_conv' : r"$f(x^\lambda)$: ",
+                    'path_conv_diff' : r"$|f(x^\lambda) - f(x)|$: "}
 
         if 'path_hess' in val_list: # Handle plotting spectrum of hessian
             # Only plot Hessian spectrum: Otherwise, plot will look like a mess
@@ -251,17 +255,18 @@ class OptPlot:
                 alg_val = getattr(alg,val)
                 if val in rolling_min:
                     alg_val = np.fmin.accumulate(alg_val)
-                    try:
-                        all_vals = np.vstack([all_vals,alg_val])
-                    except:
-                        raise Exception('Concatenation of values failed')
+
+                try:
+                    all_vals = np.vstack([all_vals,alg_val])
+                except:
+                    raise Exception('Concatenation of values failed')
 
 
             if len(all_vals) == 0:
                 warnings.warn('The value {} is empty!'.format(val))
                 continue
 
-            if val == 'path_fx':
+            if val in ['path_fx','path_fx_conv']:
                 shift = fixed_shift
                 if (min(all_vals) < 0) or rescaled:
                     shift  =  -np.nanmin(all_vals)
