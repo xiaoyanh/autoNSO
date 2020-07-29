@@ -14,6 +14,7 @@ import matplotlib
 from algs.optAlg import OptAlg
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+from vis.trans_funcs import const_scal
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.patches as mpl_patches
 
@@ -189,18 +190,20 @@ class OptPlot:
 
     # Plot for objective function of two inputs
     def plotValue(self, val_list=['path_fx'], title=None, rescaled=False, fixed_shift=0.0, ax=None,
-                  rolling_min=['path_fx','path_diam','path_delta','path_fx_conv']):
+                  rolling_min=['path_fx','path_diam','path_delta','path_fx_conv','path_delta2']):
         assert len(self.opt_algs) > 0
+
         val_list = [val_list] if isinstance(val_list,str) else val_list
         rolling_min = [rolling_min] if isinstance(val_list, str) else rolling_min
         valid_measures = ['path_fx', 'step_size', 'path_diam', 'path_delta', 'path_vio', 'path_hess','path_fx_conv',
-                          'path_conv_diff']
+                          'path_conv_diff', 'path_delta2']
         assert np.all([val in valid_measures for val in val_list])
 
         lab_dict = {'path_fx': r"$f(x)$: ",
                     'step_size': r"$|x_k - x_{k+1}|$: ",
                     'path_diam': r"diam$(S)$: ",
                     'path_delta': r"$\Theta(S)$: ",
+                    'path_delta2': r"$\Theta(S)^2$: ",
                     'path_vio': r"$Vio.=|Ax - b|: ",
                     'path_fx_conv' : r"$f(x^\lambda)$: ",
                     'path_conv_diff' : r"$|f(x^\lambda) - f(x)|$: "}
@@ -240,6 +243,15 @@ class OptPlot:
         for val in val_list:
 
             all_vals = np.array([],dtype=np.float64).reshape(0,1)
+            if val == 'path_delta2':
+                val = 'path_delta'
+                val_name = 'path_delta2'
+                trans_func
+                trans_func = lambda x: x**2
+            else:
+                trans_func = None
+                val_name = val
+
             for alg in self.opt_algs:
                 if not hasattr(alg, val):
                     continue
@@ -248,11 +260,16 @@ class OptPlot:
                     alg.step_size = np.diff(alg.path_x,axis=0)
                     alg.step_size = np.linalg.norm(alg.step_size,axis=1)
                     alg.step_size = np.insert(alg.step_size, 0, np.nan, axis=0)
+                elif val == 'path_conv_diff':
+                    continue
 
                 if alg.total_iter > max_iters:
                     max_iters = alg.total_iter
 
                 alg_val = getattr(alg,val)
+                if trans_func:
+                    alg_val = trans_func(alg_val)
+
                 if val in rolling_min:
                     alg_val = np.fmin.accumulate(alg_val)
 
@@ -261,17 +278,21 @@ class OptPlot:
                 except:
                     raise Exception('Concatenation of values failed')
 
+            if val != 'path_conv_diff':
+                if len(all_vals) == 0:
+                    warnings.warn('The value {} is empty!'.format(val))
+                    continue
 
-            if len(all_vals) == 0:
-                warnings.warn('The value {} is empty!'.format(val))
-                continue
+                if val in ['path_fx','path_fx_conv']:
+                    shift = fixed_shift
+                    if (min(all_vals) < 0) or rescaled:
+                        shift  =  -np.nanmin(all_vals)
+                else:
+                    shift = 0
 
-            if val in ['path_fx','path_fx_conv']:
-                shift = fixed_shift
-                if (min(all_vals) < 0) or rescaled:
-                    shift  =  -np.nanmin(all_vals)
-            else:
-                shift = 0
+                all_vals += shift
+                max_f = max(np.nanmax(all_vals),max_f)
+                min_f = min(np.nanmin(all_vals[all_vals != 0]),min_f)
 
             prefix = ''
             suffix = ''
@@ -281,14 +302,19 @@ class OptPlot:
             if val in rolling_min:
                 suffix += ' (cumulative min)'
 
-            all_vals += shift
-            max_f = max(np.nanmax(all_vals),max_f)
-            min_f = min(np.nanmin(all_vals[all_vals != 0]),min_f)
-
             for alg in self.opt_algs:
                 if not hasattr(alg, val):
                     continue
-                y = getattr(alg,val) + shift
+                y = getattr(alg,val)
+
+                if trans_func:
+                    y = trans_func(y)
+
+                if val == 'path_conv_diff':
+                    k, y = const_scal(y, alg.path_delta**2)
+                    lab_dict[val_name] = r"${}|f(x^\lambda) - f(x)|$: ".format(k)
+
+                y += shift
                 y[y==0] = min_f # Just set all 0's to second smallest
 
                 if val in rolling_min:
@@ -297,7 +323,7 @@ class OptPlot:
                 try:
                     ax.plot(np.arange(alg.total_iter+1), y,
                             color=next(palette), marker=next(markers), alpha=.4,
-                            label= prefix + lab_dict[val] + alg.name + suffix)
+                            label= prefix + lab_dict[val_name] + alg.name + suffix)
                 except:
                     embed()
 

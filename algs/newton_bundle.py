@@ -86,33 +86,13 @@ class NewtonBundle(OptAlg):
             else:
                 raise Exception('Start type must me bundle or random')
 
-            self.path_x = np.zeros([self.cur_iter+1, self.x_dim]) * np.nan
-            self.path_fx = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
-            self.path_fx_conv = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
-            self.path_diam = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
-            self.path_delta = (np.zeros([self.cur_iter+1]) * np.nan).reshape(self.cur_iter+1,1)
-            self.path_conv_diff = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
-            # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
-
-            if self.store_hessian:
-                self.path_hess = np.zeros([self.cur_iter+1, self.x_dim]) * np.nan
+            self.create_paths()
 
         oracle = self.objective.call_oracle(self.cur_x)
         self.cur_fx = oracle['f']
 
         if self.store_hessian:
             self.hessian = oracle['d2f']
-
-        if self.S is None: # If bundle is none, randomly initialize it (k * n)
-            assert self.k is not None
-            self.S = np.zeros([self.k,self.x_dim])
-            self.S[0,:] = self.x0
-            if self.k > 1:
-                self.S[1:,:] = self.x0 + np.random.randn(self.k-1,self.x_dim)
-        elif (self.k is not None) and self.S.shape[0] < self.k:
-            self.S = np.concatenate((self.S,np.random.randn(self.k - self.S.shape[0], self.x_dim)))
-        elif self.k is None:
-            self.k = self.S.shape[0]
 
         create_bundle(self, bundle_prune,  warm_start, start_type)
 
@@ -213,6 +193,18 @@ class NewtonBundle(OptAlg):
         else:
             if self.store_hessian:
                 self.path_hess = np.linalg.svd(self.hessian,compute_uv=False)[np.newaxis]
+
+    def create_paths(self):
+        self.path_x = np.zeros([self.cur_iter + 1, self.x_dim]) * np.nan
+        self.path_fx = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
+        self.path_fx_conv = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
+        self.path_diam = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
+        self.path_delta = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
+        self.path_conv_diff = (np.zeros([self.cur_iter + 1]) * np.nan).reshape(self.cur_iter + 1, 1)
+        # self.path_vio   = np.zeros([self.cur_iter]) * np.nan
+
+        if self.store_hessian:
+            self.path_hess = np.zeros([self.cur_iter + 1, self.x_dim]) * np.nan
 
     def stop_cond(self):
 

@@ -7,6 +7,18 @@ from algs.newton_bundle_aux.get_lambda import get_lam
 
 def create_bundle(obj, bundle_prune, warm_start, start_type):
 
+    # initialize the bundle
+    if obj.S is None:  # If bundle is none, randomly initialize it (k * n)
+        assert obj.k is not None
+        obj.S = np.zeros([obj.k, obj.x_dim])
+        obj.S[0, :] = obj.x0
+        if obj.k > 1:
+            obj.S[1:, :] = obj.x0 + np.random.randn(obj.k - 1, obj.x_dim)
+    elif (obj.k is not None) and obj.S.shape[0] < obj.k:
+        obj.S = np.concatenate((obj.S, np.random.randn(obj.k - obj.S.shape[0], obj.x_dim)))
+    elif obj.k is None:
+        obj.k = obj.S.shape[0]
+
     # Add higher order info results
     obj.fS = np.zeros(obj.S.shape[0])
     obj.dfS = np.zeros([obj.S.shape[0], obj.x_dim])
