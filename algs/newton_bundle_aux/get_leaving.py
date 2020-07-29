@@ -33,7 +33,8 @@ def get_leaving(obj, oracle):
         obj.S = np.concatenate((obj.S, obj.cur_x[np.newaxis]))
         obj.fS = np.concatenate((obj.fS, obj.cur_fx[np.newaxis]))
         obj.dfS = np.concatenate((obj.dfS, oracle['df'][np.newaxis]))
-        obj.d2fS = np.concatenate((obj.d2fS, oracle['d2f'][np.newaxis]))
+        if obj.objective.oracle_output == 'hess+':
+            obj.d2fS = np.concatenate((obj.d2fS, oracle['d2f'][np.newaxis]))
         obj.update_k()
 
         # old_delta = obj.cur_delta.copy()

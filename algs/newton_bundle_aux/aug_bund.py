@@ -22,15 +22,20 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
     # Add higher order info results
     obj.fS = np.zeros(obj.S.shape[0])
     obj.dfS = np.zeros([obj.S.shape[0], obj.x_dim])
-    obj.d2fS = np.zeros([obj.S.shape[0], obj.x_dim, obj.x_dim])
+
+    if obj.objective.oracle_output == 'hess+':
+        obj.d2fS = np.zeros([obj.S.shape[0], obj.x_dim, obj.x_dim])
+
     for i in range(obj.S.shape[0]):
         oracle = obj.objective.call_oracle(obj.S[i, :])
         obj.fS[i] = oracle['f']
         obj.dfS[i, :] = oracle['df']
-        if obj.hessian_type == 'cI':
-            obj.d2fS[i, :, :] = hess_approx_cI(oracle['d2f'])
-        else:
-            obj.d2fS[i, :, :] = oracle['d2f']
+
+        if obj.objective.oracle_output == 'hess+':
+            if obj.hessian_type == 'cI':
+                obj.d2fS[i, :, :] = hess_approx_cI(oracle['d2f'])
+            else:
+                obj.d2fS[i, :, :] = oracle['d2f']
 
     if warm_start and start_type == 'bundle' and (bundle_prune is not None):
         assert bundle_prune in ['lambda', 'svd', 'log_lambda', 'log_svd', 'svd2', 'duals','qr']
@@ -80,4 +85,5 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
         obj.S = obj.S[active, :]
         obj.fS = obj.fS[active]
         obj.dfS = obj.dfS[active, :]
-        obj.d2fS = obj.d2fS[active, :]
+        if obj.objective.oracle_output == 'hess+':
+            obj.d2fS = obj.d2fS[active, :]

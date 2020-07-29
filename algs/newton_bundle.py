@@ -47,20 +47,7 @@ class NewtonBundle(OptAlg):
         assert solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
         assert leaving_met in ['delta','ls','grad_dist','cayley_menger']
 
-        if self.solver == 'MATLAB':
-            if eng is None:
-                print("Starting parallel pool for MATLAB solver", flush=True)
-
-                threads = multiprocessing.cpu_count()/2
-                self.eng = matlab.engine.start_matlab()
-                self.eng.parpool('local', threads)
-                self.eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
-                print('MATLAB Started!', flush=True)
-            else:
-                self.eng = eng
-        else:
-            self.eng=None
-
+        self.start_matlab(eng)
         print("Project Hessian: {}".format(self.proj_hess),flush=True)
 
         # Prepare the bundle
@@ -267,3 +254,18 @@ class NewtonBundle(OptAlg):
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
+
+    def start_matlab(self, eng):
+        if self.solver == 'MATLAB':
+            if eng is None:
+                print("Starting parallel pool for MATLAB solver", flush=True)
+
+                threads = multiprocessing.cpu_count()/2
+                self.eng = matlab.engine.start_matlab()
+                self.eng.parpool('local', threads)
+                self.eng.addpath(os.getcwd() + '/algs/newton_bundle_aux', nargout=0)
+                print('MATLAB Started!', flush=True)
+            else:
+                self.eng = eng
+        else:
+            self.eng=None
