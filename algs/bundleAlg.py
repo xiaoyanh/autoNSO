@@ -13,7 +13,7 @@ from algs.newton_bundle_aux.aug_bund import create_bundle
 class BundleAlg(OptAlg):
     def __init__(self, objective, k=4, delta_thres=0, diam_thres=0, warm_start=None, start_type='bundle',
                  bundle_prune='lambda', rank_thres=1e-3, pinv_cond=float('-inf'), random_sz=1e-1,
-                 leaving_met='delta', solver='MOSEK', eng = None, mu_sz=None, **kwargs):
+                 leaving_met='delta', solver='MOSEK', eng = None, mu_sz=None, adaptive_bundle=False, **kwargs):
 
         super(BundleAlg, self).__init__(objective, **kwargs)
 
@@ -27,6 +27,7 @@ class BundleAlg(OptAlg):
         self.pinv_cond   = pinv_cond
         self.random_sz   = random_sz
         self.leaving_met = leaving_met
+        self.adaptive_bundle = adaptive_bundle
         self.k = k
         self.mu = mu_sz
 
@@ -59,36 +60,31 @@ class BundleAlg(OptAlg):
 
             self.create_paths()
 
-        self.oracle = self.objective.call_oracle(self.cur_x)
-        self.cur_fx = self.oracle['f']
-
         create_bundle(self, bundle_prune,  warm_start, start_type)
+        self.update_k()
 
         # Set params
         self.cur_delta, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)
         self.lam_cur = self.lam_cur.reshape(-1)
-        self.update_k()
 
-        self.cur_x_conv = self.lam_cur @ self.S
-        self.cur_fx_conv = self.objective.obj_func(self.cur_x_conv).item()
-
-        self.update_params()
+        self.post_step(intermediate=False)
 
     def step(self):
         super(BundleAlg, self).step()
 
-    def post_step(self):
+    def post_step(self, intermediate=True):
         self.oracle = self.objective.call_oracle(self.cur_x)
-
         self.cur_fx = self.oracle['f']
-        old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
-        self.fx_step = (old_fx - self.cur_fx)
 
         # Compare with convex combination
         self.cur_x_conv = self.lam_cur @ self.S
         self.cur_fx_conv = self.objective.obj_func(self.cur_x_conv).item()
 
-        self.update_bundle()  # Update the bundle
+        if intermediate:
+            old_fx = self.cur_fx.copy() if (self.cur_fx is not None) else float('inf')
+            self.fx_step = (old_fx - self.cur_fx)
+
+            self.update_bundle()  # Update the bundle
 
         # Update current iterate value and update the bundle
         self.update_params()

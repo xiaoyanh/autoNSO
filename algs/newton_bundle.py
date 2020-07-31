@@ -8,12 +8,11 @@ from scipy.sparse import diags
 # Bundle Newton Method from Lewis-Wylie 2019
 class NewtonBundle(BundleAlg):
     def __init__(self, objective, proj_hess = False,
-                 store_hessian=False, adaptive_bundle=False,
+                 store_hessian=False,
                  hessian_type='autograd', **kwargs):
 
         # Set up criterion
         self.store_hessian = store_hessian
-        self.adaptive_bundle = adaptive_bundle
         self.hessian_type = hessian_type
         self.proj_hess    = proj_hess
         objective.oracle_output = 'hess+'
