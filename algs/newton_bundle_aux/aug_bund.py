@@ -32,10 +32,7 @@ def create_bundle(obj, bundle_prune, warm_start, start_type):
         obj.dfS[i, :] = oracle['df']
 
         if obj.objective.oracle_output == 'hess+':
-            if obj.hessian_type == 'cI':
-                obj.d2fS[i, :, :] = hess_approx_cI(oracle['d2f'])
-            else:
-                obj.d2fS[i, :, :] = oracle['d2f']
+            obj.d2fS[i, :, :] = hess_approx_cI(oracle['d2f'], sig_type=obj.hessian_type, mu=obj.mu)
 
     if warm_start and start_type == 'bundle' and (bundle_prune is not None):
         assert bundle_prune in ['lambda', 'svd', 'log_lambda', 'log_svd', 'svd2', 'duals','qr']

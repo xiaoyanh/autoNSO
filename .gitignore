@@ -2,6 +2,8 @@ dev_script.py
 simple_examples/run_newton_bundle2.py
 simple_examples/run_newton_bundle3.py
 simple_examples/run_quad_bundle.py
+simple_examples/run_spec_bundle.py
 algs/prox_bundle2.py
 algs/quad_bundle.py
+algs/spec_bundle.py
 obj/obj_funcs2.py

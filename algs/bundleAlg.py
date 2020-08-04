@@ -3,10 +3,12 @@ import numpy as np
 import matlab.engine
 import multiprocessing
 
+from IPython import embed
 from algs.optAlg import OptAlg
 from utils.diameter import get_diam
 from algs.newton_bundle_aux.get_lambda import get_lam
 from algs.newton_bundle_aux.get_leaving import get_leaving
+from algs.newton_bundle_aux.approx_hessian import hess_approx_cI
 from algs.newton_bundle_aux.aug_bund import create_bundle
 
 # A Bundle Method
@@ -142,11 +144,7 @@ class BundleAlg(OptAlg):
             self.dfS[k_sub, :] = self.oracle['df']
 
             if self.objective.oracle_output == 'hess+':
-                if self.hessian_type == 'cI':
-                    # self.d2fS[k_sub, :, :] = hess_approx_cI(oracle['d2f'])
-                    self.d2fS[k_sub, :, :] = self.mu * np.eye(self.x_dim)
-                else:
-                    self.d2fS[k_sub, :, :] = self.oracle['d2f']
+                self.d2fS[k_sub, :, :] = hess_approx_cI(self.oracle['d2f'], sig_type=self.hessian_type, mu=self.mu)
 
         if self.leaving_met == 'ls':
             _, self.lam_cur = get_lam(self.dfS, solver=self.solver, eng=self.eng)

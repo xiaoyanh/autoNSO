@@ -19,7 +19,7 @@ class NewtonBundle(BundleAlg):
 
         super(NewtonBundle, self).__init__(objective, **kwargs)
 
-        assert self.hessian_type in ['autograd','cI']
+        assert self.hessian_type in ['autograd','sigI','muI']
         assert self.solver in ['MOSEK','GUROBI','OSQP','CVXOPT','quadprog','MATLAB']
         assert self.leaving_met in ['delta','ls','grad_dist','cayley_menger']
 
@@ -117,7 +117,7 @@ class NewtonBundle(BundleAlg):
         if self.proj_hess:
             self.name += ' U-projected'
         self.name += ')'
-        if self.hessian_type == 'cI':
+        if self.hessian_type == 'muI':
             self.name += '(First-Order)'
 
         print('Bundle Size Set to {}'.format(self.k), flush=True)
